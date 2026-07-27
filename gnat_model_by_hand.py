@@ -42,6 +42,8 @@ from src.galaxy_alignment_prediction_tool.predictor import galaxyAlignmentPredic
 from src.galaxy_alignment_prediction_tool.powerspectrum import powerSpectrum
 
 import pandas as pd
+import h5py
+import re
 
 cosmo_ccl = ccl.Cosmology(
     Omega_c=0.306-0.0486, 
@@ -53,7 +55,7 @@ cosmo_ccl = ccl.Cosmology(
 
 # Define redshifts at which to calculate estimators
 redshift_list = np.array([0])
-
+z=0
 
 kmin, kmax = 1e-5, 1e2
 
@@ -71,19 +73,344 @@ pi_max = 100.0  # in Mpc
 # We use here the vanilla g+ and gg obtained from the 3d matter power spectrum
 k_array_single = np.geomspace(kmin, kmax, 1000)  # shape (n_k,)
 k_array = np.tile(k_array_single, (len(redshift_list), 1, 1)).T
-pk_input = np.zeros((len(k_array_single), 1, len(redshift_list)))  # shape (n_k, n_pk, n_redshifts)
+# pk_input = np.zeros((len(k_array_single), 1, len(redshift_list)))  # shape (n_k, n_pk, n_redshifts)
 
-# Fill pk_input with g+ and gg power spectra
+# # linear or non-linear ccl power spectrum
+
+# # Fill pk_input with g+ and gg power spectra
 powerSpectrumHandler = powerSpectrum()
-for idx_z, z in enumerate(redshift_list):
-    pkmm_ccl = powerSpectrumHandler.ccl_power_spectrum(
-        cosmo=cosmo_ccl,
-        k_input=k_array_single,
-        redshift=z,
-        pk_type='nonlinear_matter'
-    )
+# for idx_z, z in enumerate(redshift_list):
+#     pkmm_ccl = powerSpectrumHandler.ccl_power_spectrum(
+#         cosmo=cosmo_ccl,
+#         k_input=k_array_single,
+#         redshift=z,
+#         pk_type='nonlinear_matter'
+#     )
 
-    pk_input[:, 0, idx_z] = -np.pi**2*pkmm_ccl
+#     # pk_input[:, 0, idx_z] = -np.pi**2*pkmm_ccl
+#     pk_input[:, 0, idx_z] = pkmm_ccl
+
+# print("Power spectrum: ", pk_input[:, 0, 0])
+# print("Shape: ", np.shape(pk_input))
+
+# ============================================================
+#  Read FLAMINGO P(k)
+# ============================================================
+
+def read_flamingo_power_spectrum(file_path):
+    with h5py.File(file_path, 'r') as f:
+        z_keys = sorted(
+            [key for key in f.keys() if re.match(r"z=\d+\.\d+", key)],
+            key=lambda k: float(k.split('=')[1])
+        )
+
+        a_list, pk_list = [], []
+
+        for zkey in z_keys:
+            z = float(zkey.split('=')[1])
+            a = 1.0 / (1.0 + z)
+            k = f[f"{zkey}/k"][:]
+            p = f[f"{zkey}/P(k)"][:]
+
+            pk_list.append(p)
+            a_list.append(a)
+
+    a_array = np.array(a_list)
+    P_array = np.array(pk_list).T
+
+    sort_idx = np.argsort(a_array)
+    a_array = a_array[sort_idx]
+    P_array = P_array[:, sort_idx]
+
+    return P_array, k, a_array
+
+
+flamingo_file_path = '/disks/shear16/herle/power_spectra/L2p8_m9.hdf5'
+P_flamingo, k_flamingo, a_flamingo = read_flamingo_power_spectrum(flamingo_file_path)
+
+k_switch = k_flamingo.min() 
+
+pk_ccl = powerSpectrumHandler.ccl_power_spectrum(
+    cosmo=cosmo_ccl,
+    k_input=k_array_single,
+    redshift=z,
+    pk_type='nonlinear_matter'
+)
+
+pk = np.zeros_like(k_array_single)
+
+a_target = 1/(1+0.0)
+idx = np.argmin(np.abs(a_flamingo - a_target))
+
+print(a_flamingo[idx], 1/a_flamingo[idx]-1)
+
+mask_low = k_array_single < k_switch
+mask_high = ~mask_low
+
+pk[mask_low] = pk_ccl[mask_low]
+
+interp = interp1d(
+    np.log(k_flamingo),
+    np.log(P_flamingo[:, idx]),
+    kind="linear",
+    bounds_error=True
+)
+
+pk[mask_high] = np.exp(interp(np.log(k_array_single[mask_high])))
+
+# print("FLAMINGO ps: ", P_flamingo)
+# print("FLAMINGO ps shape: ", np.shape(P_flamingo))
+
+# print("FLAMINGO + ccl ps: ", pk)
+# print("FLAMINGO + ccl shape: ", np.shape(pk))
+
+
+import matplotlib.pyplot as plt
+
+# plt.rcdefaults()
+# plt.rcParams['figure.figsize'] = (10, 10)
+# plt.rcParams['font.size'] = 22
+
+# plt.figure(figsize=(8,6))
+
+# plt.loglog(k_array_single, pk_input[:,0,0], label='CCL nonlinear')
+# plt.loglog(k_array_single, pk_ccl, '--', label='CCL linear')
+# plt.loglog(k_flamingo, P_flamingo[:, idx], label='FLAMINGO')
+# plt.loglog(k_array_single, pk, lw=3, label='Hybrid')
+
+# plt.axvline(k_switch, color='red', ls=':', label=f'$k_{{switch}}={k_switch:.3g}$')
+
+# plt.axvline(x=1e-5, color='k', linestyle='--')
+# plt.axvline(x=1e2, color='k', linestyle='--')
+
+# plt.xlabel(r"$k$")
+# plt.ylabel(r"$P(k)$")
+# plt.legend()
+# plt.tight_layout()
+# plt.savefig('/disks/shear16/herle/code/plots/comp_ps.png')
+
+# plt.figure(figsize=(8,5))
+
+# ccl_interp = interp1d(
+#     np.log(k_array_single),
+#     np.log(pk_ccl),
+#     bounds_error=False,
+#     fill_value="extrapolate"
+# )
+
+# ratio = P_flamingo[:, idx] / np.exp(ccl_interp(np.log(k_flamingo)))
+
+# plt.semilogx(k_flamingo, ratio)
+# plt.axhline(1, color='k', ls='--')
+# plt.xlabel(r"$k$")
+# plt.ylabel(r"$P_{\rm FLAMINGO}/P_{\rm non-linear}$")
+
+# plt.ylim(-1, 5)
+# plt.tight_layout()
+
+# plt.savefig('/disks/shear16/herle/code/plots/comp_ps_ratio_zoom.png')
+
+# print("k_switch =", k_switch)
+# print("FLAMINGO k range =", k_flamingo.min(), k_flamingo.max())
+# print("CCL k range =", k_array_single.min(), k_array_single.max())
+
+# # Interpolate FLAMINGO onto the full k grid
+# flam_interp = interp1d(
+#     np.log(k_flamingo),
+#     np.log(P_flamingo[:, idx]),
+#     bounds_error=False,
+#     fill_value="extrapolate"
+# )
+
+# pk_flam_full = np.exp(flam_interp(np.log(k_array_single)))
+
+# # Ratio of stitched spectrum to CCL linear spectrum
+# ratio = pk / pk_ccl
+
+# plt.figure(figsize=(8,5))
+
+# plt.semilogx(k_array_single, ratio)
+
+# plt.axhline(1, color='k', ls='--')
+# plt.axvline(k_switch, color='r', ls=':', 
+#             label=f'$k_{{switch}}={k_switch:.2e}$')
+
+# plt.xlim(1e-5,1e0)
+# plt.ylim(0.8,1.2)
+
+# plt.xlabel(r"$k$")
+# plt.ylabel(r"$P_{\rm stitched}/P_{\rm CCL}$")
+# plt.legend()
+# plt.tight_layout()
+
+# plt.savefig('/disks/shear16/herle/code/plots/comp_ps_ratio_zoom_check_transition.png')
+
+from scipy.interpolate import interp1d
+from scipy.signal import savgol_filter
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ============================================================
+# Smooth stitched power spectrum on uniform log-k grid
+# ============================================================
+
+logk = np.log(k_array_single)
+logpk = np.log(pk)
+
+# Create uniform log-k grid
+N_log = 20000
+logk_uniform = np.linspace(logk.min(), logk.max(), N_log)
+
+# Interpolate log P(k) onto uniform log-k grid
+interp_func = interp1d(
+    logk,
+    logpk,
+    kind="linear"
+)
+
+logpk_uniform = interp_func(logk_uniform)
+
+# Savitzky-Golay smoothing
+window_length = 1001
+polyorder = 3
+
+if window_length % 2 == 0:
+    window_length += 1
+
+logpk_uniform_smooth = savgol_filter(
+    logpk_uniform,
+    window_length,
+    polyorder
+)
+
+# Interpolate smoothed log P(k) back to original k grid
+interp_back = interp1d(
+    logk_uniform,
+    logpk_uniform_smooth,
+    kind="linear"
+)
+
+logpk_smoothed = interp_back(logk)
+
+# Convert back
+pk_smoothed = np.exp(logpk_smoothed)
+# reshape to predictor format: (n_k, n_pk, n_redshifts)
+pk_input = np.zeros((len(k_array_single), 1, len(redshift_list)))
+
+for idx_z, z in enumerate(redshift_list):
+    pk_input[:, 0, idx_z] = -np.pi**2*pk_smoothed
+# print("Smoothed spectrum shape:", pk_smoothed.shape)
+
+# plt.figure(figsize=(8,6))
+
+# plt.loglog(
+#     k_array_single,
+#     pk,
+#     label="stitched",
+#     lw=2
+# )
+
+# plt.loglog(
+#     k_array_single,
+#     pk_smoothed,
+#     label="stitched + SavGol",
+#     lw=2
+# )
+
+# plt.axvline(
+#     k_switch,
+#     color="r",
+#     ls=":",
+#     label=r"$k_{\rm switch}$"
+# )
+
+# plt.xlabel(r"$k$")
+# plt.ylabel(r"$P(k)$")
+# plt.legend()
+# plt.tight_layout()
+
+# plt.savefig(
+#     "/disks/shear16/herle/code/plots/stitched_smoothed_ps.png",
+#     dpi=200
+# )
+# plt.figure(figsize=(8,5))
+
+# ratio_smoothing = pk_smoothed / pk
+
+# plt.semilogx(
+#     k_array_single,
+#     ratio_smoothing
+# )
+
+# plt.axhline(
+#     1,
+#     color="k",
+#     ls="--"
+# )
+
+# plt.axvline(
+#     k_switch,
+#     color="r",
+#     ls=":",
+#     label=r"$k_{\rm switch}$"
+# )
+
+# plt.xlim(1e-4, 1e-1)
+# plt.ylim(0.98,1.02)
+
+# plt.xlabel(r"$k$")
+# plt.ylabel(r"$P_{\rm smooth}/P_{\rm stitched}$")
+
+# plt.legend()
+# plt.tight_layout()
+
+# plt.savefig(
+#     "/disks/shear16/herle/code/plots/smoothing_effect.png",
+#     dpi=200
+# )
+# plt.figure(figsize=(8,5))
+
+# ratio_before = pk / pk_ccl
+# ratio_after  = pk_smoothed / pk_ccl
+
+# plt.semilogx(
+#     k_array_single,
+#     ratio_before,
+#     label="stitched"
+# )
+
+# plt.semilogx(
+#     k_array_single,
+#     ratio_after,
+#     label="stitched + smoothing"
+# )
+
+# plt.axhline(
+#     1,
+#     color="k",
+#     ls="--"
+# )
+
+# plt.axvline(
+#     k_switch,
+#     color="r",
+#     ls=":",
+#     label=r"$k_{\rm switch}$"
+# )
+
+# plt.xlim(1e-4,1e-1)
+# plt.ylim(0.8,1.2)
+
+# plt.xlabel(r"$k$")
+# plt.ylabel(r"$P/P_{\rm CCL,nl}$")
+
+# plt.legend()
+# plt.tight_layout()
+
+# plt.savefig(
+#     "/disks/shear16/herle/code/plots/switch_smoothing_check.png",
+#     dpi=200
+# )
 
 # Then, we initialise the power spectra in the predictor
 predictor = galaxyAlignmentPredictor(
@@ -93,7 +420,6 @@ predictor = galaxyAlignmentPredictor(
 )
 
 # 2 void term
-
 predictor.initialise_power_spectra(
     k_input=k_array,
     pk_input=pk_input,
@@ -122,7 +448,7 @@ w_2v =  w_arr[:, 0, 0]
 
 h = 0.681
 
-delta_v = np.load('/disks/shear16/herle/code/zobov_WEAK_AGN_void_delta_k_bin0_raw.npy')
+delta_v = np.load('/disks/shear16/herle/code/zobov_FIDUCIAL_void_delta_k_bin0_raw.npy')
 
 # Reconstruct the k-grid delta_v was actually saved on
 # (must match the void script exactly: log10kmin=-5, log10kmax=2, N=1000001, then *h)
@@ -202,7 +528,7 @@ wVI *= h
 model_rp = rp_array * h
 
 # model_rp = model_rp /h  # in Mpc
-print("Model rp range: ", model_rp.min(), model_rp.max())
+# print("Model rp range: ", model_rp.min(), model_rp.max())
 
 Rv = 15.0
 # masks
@@ -223,7 +549,7 @@ redshift = '0.0'
 meas_file = (
     f'/disks/shear16/herle/correlations1/'
     f'correlations_revolver_10_20Mpc_' + run +
-    f'_HYDRO_WEAK_AGN_' + redshift + '.h5'
+    f'_HYDRO_FIDUCIAL_' + redshift + '_JK.h5'
 )
 
 df = pd.read_hdf(meas_file, key='a')
@@ -235,8 +561,6 @@ err_meas = df['wgp_std_from_cov'].values
 # rp_meas = df['wgp_rp'].values /h
 # wvp_meas = df['wgp_xip'].values /h 
 # err_meas = df['wgp_std_from_cov'].values /h
-
-df = pd.read_hdf(meas_file, key='a')
 
 
 mask_VI  = (rp_meas >= lower_rp_VI)  & (rp_meas <= upper_rp_VI)
@@ -264,7 +588,7 @@ def model_wVII(p):
 
     return model_rp[model_mask_VII], wVII_model
 
-A, b = 5.0, 2.0
+A, b = 5.5, 0.8
 
 p = [A, b]
 
@@ -282,20 +606,14 @@ print("-----------------------------------")
 print("A_v: ", A)
 print("b_v: ", b)
 
-print("model wv1 :" , wVI_model)
-print("model wv2 :" , wVII_model)
+# print("model wv1 :" , wVI_model)
+# print("model wv2 :" , wVII_model)
 
 # concatenate model pieces into one vector (matching data vector order)
 rp_model_total = np.concatenate([rp_model_VI, rp_model_VII])
 corr_model_total = np.concatenate([wVI_model, wVII_model])
 
 
-import matplotlib.pyplot as plt
-from mnras import *
-
-plt.rcdefaults()
-plt.rcParams['figure.figsize'] = (10, 10)
-plt.rcParams['font.size'] = 22
 
 plt.figure(figsize=(10, 10))
 
@@ -319,7 +637,7 @@ plt.xlabel(r'$r_p$ [Mpc/h]')
 plt.ylabel(r'$r_p w_{\mathrm{V}+} [\mathrm{Mpc}^2/h^2]$')
 
 ax = plt.gca()
-correct_tick_marks(ax)
+# correct_tick_marks(ax)
 
 mask_model_VI  = (model_rp >= lower_rp_VI)  & (model_rp <= upper_rp_VI)
 mask_model_VII = (model_rp >= lower_rp_VII) & (model_rp <= upper_rp_VII)
@@ -346,4 +664,4 @@ plt.hlines(0, xmin=1, xmax=600, colors='k', linestyles='dotted')
 plt.legend(frameon=False)
 
 plt.tight_layout()
-plt.savefig('/disks/shear16/herle/code/plots/zobov_fiducial_fitby_hand_gnat_weak_agn.png')
+plt.savefig('/disks/shear16/herle/code/plots/zobov_fiducial_fitby_hand_fiducial_flamingo_ps.png')

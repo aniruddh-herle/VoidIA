@@ -19,6 +19,9 @@ elif 'L1000' in run:
 else:
     raise ValueError("Unknown catalog. Please set box_size manually.")
 
+Rmin, Rmax = 30, 50
+
+print("Rmin, Rmax = ", (Rmin, Rmax))
 
 h=0.681
 modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA', 'JETS_published', 'STRONG_JETS_published']
@@ -61,8 +64,8 @@ for mode in modes:
 
     void_data = pd.DataFrame(voids[:, :5], columns=cols)
 
-    void_data = void_data[(void_data['Rv'] >= 10) & 
-                        (void_data['Rv'] <= 20)]
+    void_data = void_data[(void_data['Rv'] >= Rmin) & 
+                        (void_data['Rv'] < Rmax)]
 
     print("Number of voids: ", len(void_data))
     # rename coordinates
@@ -93,9 +96,9 @@ for mode in modes:
         'npi': 1,
         'grid_resolution': 3,
         'mubins': 10,
-        'NPatches': 125,
+        'NPatches': 8,
         'delete_n': 1,
-        'ncores': 128,
+        'ncores': 192,
         'slop': 0.,
         'box': True,
         'box_size': box_size * h
@@ -103,7 +106,6 @@ for mode in modes:
 
     # --- Compute correlations ---
     corr = compute_2p_corr(data_positions, data_shapes, random_mock_box_positions, random_mock_box_shapes, config)
-
     corr.compute_wgp()
 
     # --- Stack results and save ---
@@ -119,8 +121,8 @@ for mode in modes:
                 'wgp_std_from_cov']
     )
 
-    df.to_hdf('/disks/shear16/herle/correlations1/correlations_revolver_10_20Mpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_JK.h5',
+    df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_JK8.h5',
             key='a')
 
-    np.save('/disks/shear16/herle/correlations1/wgp_cov_jk_voids_revolver_10_20Mpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_JK.npy', corr.wgp.cov_jk)
-    np.save('/disks/shear16/herle/correlations1/wgp_xip_jk_voids_revolver_10_20Mpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_JK.npy', corr.wgp.xip_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wgp_cov_jk_voids_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_JK8.npy', corr.wgp.cov_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wgp_xip_jk_voids_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_JK8.npy', corr.wgp.xip_jk)

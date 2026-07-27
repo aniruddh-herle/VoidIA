@@ -9,6 +9,7 @@ h=0.681
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from tqdm import tqdm
 
 base_path = '/disks/shear16/herle/voids/'
 
@@ -154,7 +155,11 @@ def compute_void_profiles(void_positions, void_radii, save_dir):
     profiles_phys = []
     profiles_scaled = []
 
-    for i, (pos, Rv) in enumerate(zip(void_positions, void_radii)):
+    #for i, (pos, Rv) in enumerate(zip(void_positions, void_radii)):
+    for i in tqdm(range(len(void_radii)), desc="Computing void profiles"):
+        pos = void_positions[i]
+        Rv = void_radii[i]
+
 
         xv, yv, zv = pos
 
@@ -193,7 +198,7 @@ def compute_void_profiles(void_positions, void_radii, save_dir):
     return np.array(profiles_phys), np.array(profiles_scaled)
 
 
-save_base_dir = "/disks/shear16/herle/void_profiles/zobov_hydro/"
+save_base_dir = "/disks/shear16/herle/void_profiles/zobov_hydro_serial_test/"
 
 all_profiles_phys = {}
 all_profiles_scaled = {}
@@ -217,7 +222,7 @@ for mode, (void_file, galaxy_file, label, color) in hydro_modes.items():
 
     zobov_voids = zobov_voids[
         (zobov_voids[:,4] >= 10) &
-        (zobov_voids[:,4] <= 30)
+        (zobov_voids[:,4] <= 12)
     ]
 
     # zobov_voids = zobov_voids[
@@ -250,18 +255,18 @@ for mode, (void_file, galaxy_file, label, color) in hydro_modes.items():
 
     print(f"Mean density for {label}: {mean_densities[label]:.6e} Mpc^-3/h^3")
 
-    # save_dir = os.path.join(save_base_dir, mode)
+    save_dir = os.path.join(save_base_dir, mode)
 
-    # phys, scaled = compute_void_profiles(
-    #     zobov_voids[:,1:4],
-    #     zobov_voids[:,4],
-    #     save_dir
-    # )
+    phys, scaled = compute_void_profiles(
+        zobov_voids[:,1:4],
+        zobov_voids[:,4],
+        save_dir
+    )
 
-    # all_profiles_phys[mode] = phys
-    # all_profiles_scaled[mode] = scaled
-    # colors[mode] = color
-    # labels[mode] = label
+    all_profiles_phys[mode] = phys
+    all_profiles_scaled[mode] = scaled
+    colors[mode] = color
+    labels[mode] = label
 
 # -------------------------------
 # Plot stacked median + percentiles

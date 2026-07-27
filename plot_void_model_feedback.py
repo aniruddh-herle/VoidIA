@@ -6,6 +6,9 @@ from mnras import *
 from getdist import plots, MCSamples
 import pyccl as ccl
 import glob
+
+import h5py
+import re
 plt.rcdefaults()
 plt.rcParams['figure.figsize'] = (10, 10)
 plt.rcParams['font.size'] = 22
@@ -30,6 +33,33 @@ def compute_chi2(logl, samples, corr):
     return chi2_eff, chi2_red
 
 
+def read_flamingo_power_spectrum(file_path):
+    with h5py.File(file_path, 'r') as f:
+        z_keys = sorted(
+            [key for key in f.keys() if re.match(r"z=\d+\.\d+", key)],
+            key=lambda k: float(k.split('=')[1])
+        )
+
+        a_list, pk_list = [], []
+
+        for zkey in z_keys:
+            z = float(zkey.split('=')[1])
+            a = 1.0 / (1.0 + z)
+            k = f[f"{zkey}/k"][:]
+            p = f[f"{zkey}/P(k)"][:]
+
+            pk_list.append(p)
+            a_list.append(a)
+
+    a_array = np.array(a_list)
+    P_array = np.array(pk_list).T
+
+    sort_idx = np.argsort(a_array)
+    a_array = a_array[sort_idx]
+    P_array = P_array[:, sort_idx]
+
+    return P_array, k, a_array
+
 names =  ['A1_v', 'b_v']
 labels = ['A1_v', 'b_v']
 
@@ -41,30 +71,40 @@ labels = ['A1_v', 'b_v']
 #     'STRONGEST_AGN',
 #     'STRONG_SUPERNOVA'
 # ]
+# ps_modes = ['L1_m9', 'fgas+2σ', 'fgas-2σ', 'fgas-4σ', 'fgas-8σ', 'M_-σ']
+# FLAMINGO_colors = [
+#     '#117733',
+#     '#ABD0E6',
+#     '#6AAED6',
+#     '#3787C0',
+#     '#105BA4',
+#     '#FF8C40'
+# ]
+
+# FLAMINGO_labels = [
+#     r"L1_m9",
+#     r"fgas$+2\sigma$",
+#     r"fgas$-2\sigma$",
+#     r"fgas$-4\sigma$",
+#     r"fgas$-8\sigma$",
+#     r"M_*-\sigma$"
+# ]
+
 
 modes = [
-    'FIDUCIAL'
+    'STRONGEST_AGN'
 ]
 
-
-
+ps_modes = ['fgas-8σ']
 FLAMINGO_colors = [
-    '#117733',
-    '#ABD0E6',
-    '#6AAED6',
-    '#3787C0',
-    '#105BA4',
-    '#FF8C40'
+    '#105BA4'
 ]
 
 FLAMINGO_labels = [
-    r"L1_m9",
-    r"fgas$+2\sigma$",
-    r"fgas$-2\sigma$",
-    r"fgas$-4\sigma$",
-    r"fgas$-8\sigma$",
-    r"M_*-\sigma$"
+   r"fgas$-8\sigma$"
 ]
+
+
 
 # Limit number of cores
 import os
@@ -168,12 +208,15 @@ best_fit_results_all = {}
 chi2_results_all = {}
 model_results_all = {}
 
+powerSpectrumHandler = powerSpectrum()
+z=0.0
+
 for i, mode in enumerate(modes):
 
     # -------------------------------------------------
     # Posterior samples + best fit (per mode)
     # -------------------------------------------------
-    filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{mode}_voids_1000_Rv10_20Mpc_pimax100_0.0_JK125.npz'
+    filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{mode}_voids_1000_Rv10_20Mpc_pimax100_0.0_JK125_flamingo_ps.npz'
     samples, weights, logl = read_nautilus_samples(filename)
     getdist_samples = MCSamples(samples=samples,
                                 weights=weights,
@@ -206,19 +249,94 @@ for i, mode in enumerate(modes):
     # -------------------------------------------------
     # 2-void term model (per mode)
     # -------------------------------------------------
-    pk_input = np.zeros((len(k_array_single), 1, len(redshift_list)))  # shape (n_k, n_pk, n_redshifts)
+    # ============================================================
+    #  Read FLAMINGO P(k)
+    # ============================================================
 
-    # Fill pk_input with g+ and gg power spectra
-    powerSpectrumHandler = powerSpectrum()
+    flamingo_file_path = f'/disks/shear16/herle/power_spectra/{ps_modes[i]}.hdf5'
+    print(flamingo_file_path)
+    P_flamingo, k_flamingo, a_flamingo = read_flamingo_power_spectrum(flamingo_file_path)
+
+    k_switch = k_flamingo.min() 
+
+    pk_ccl = powerSpectrumHandler.ccl_power_spectrum(
+        cosmo=cosmo_ccl,
+        k_input=k_array_single,
+        redshift=z,
+        pk_type='nonlinear_matter'
+    )
+
+    pk = np.zeros_like(k_array_single)
+
+    a_target = 1/(1+0.0)
+    idx = np.argmin(np.abs(a_flamingo - a_target))
+
+    # print(a_flamingo[idx], 1/a_flamingo[idx]-1)
+
+    mask_low = k_array_single < k_switch
+    mask_high = ~mask_low
+
+    pk[mask_low] = pk_ccl[mask_low]
+
+    interp = interp1d(
+        np.log(k_flamingo),
+        np.log(P_flamingo[:, idx]),
+        kind="linear",
+        bounds_error=True
+    )
+
+    pk[mask_high] = np.exp(interp(np.log(k_array_single[mask_high])))
+
+    # ============================================================
+    # Smooth stitched power spectrum on uniform log-k grid
+    # ============================================================
+
+    logk = np.log(k_array_single)
+    logpk = np.log(pk)
+
+    # Create uniform log-k grid
+    N_log = 20000
+    logk_uniform = np.linspace(logk.min(), logk.max(), N_log)
+
+    # Interpolate log P(k) onto uniform log-k grid
+    interp_func = interp1d(
+        logk,
+        logpk,
+        kind="linear"
+    )
+
+    logpk_uniform = interp_func(logk_uniform)
+
+    # Savitzky-Golay smoothing
+    window_length = 1001
+    polyorder = 3
+
+    if window_length % 2 == 0:
+        window_length += 1
+
+    logpk_uniform_smooth = savgol_filter(
+        logpk_uniform,
+        window_length,
+        polyorder
+    )
+
+    # Interpolate smoothed log P(k) back to original k grid
+    interp_back = interp1d(
+        logk_uniform,
+        logpk_uniform_smooth,
+        kind="linear"
+    )
+
+    logpk_smoothed = interp_back(logk)
+
+    # Convert back
+    pk_smoothed = np.exp(logpk_smoothed)
+    # reshape to predictor format: (n_k, n_pk, n_redshifts)
+    pk_input = np.zeros((len(k_array_single), 1, len(redshift_list)))
+
     for idx_z, z in enumerate(redshift_list):
-        pkmm_ccl = powerSpectrumHandler.ccl_power_spectrum(
-            cosmo=cosmo_ccl,
-            k_input=k_array_single,
-            redshift=z,
-            pk_type='nonlinear_matter'
-        )
+        pk_input[:, 0, idx_z] = -np.pi**2*pk_smoothed
 
-        pk_input[:, 0, idx_z] = -np.pi**2*pkmm_ccl
 
     # Then, we initialise the power spectra in the predictor
     predictor = galaxyAlignmentPredictor(
