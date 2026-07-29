@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 from mnras import *
+from scipy.spatial import cKDTree
 
 h=0.681
 
@@ -75,82 +76,82 @@ plt.savefig(
 )
 
 
-box_size = 1000 * h
-# box_size = 2800 * h
+# box_size = 1000 * h
+box_size = 2800 * h
 
 # # -------------------------------
 # # Hydro runs
 # # -------------------------------
-hydro_modes = {
-    "FIDUCIAL": (
-        "zobov-Flamingo_outputFIDUCIAL_cat.txt",
-        "L1000N1800_HYDRO_FIDUCIAL_0.0stellar_mass_cut.h5",
-        r"L1$_{\rm m9}$",
-        "#117733"
-    ),
+# hydro_modes = {
+#     "FIDUCIAL": (
+#         "zobov-Flamingo_outputFIDUCIAL_cat.txt",
+#         "L1000N1800_HYDRO_FIDUCIAL_0.0stellar_mass_cut.h5",
+#         r"L1$_{\rm m9}$",
+#         "#117733"
+#     ),
 
-    "WEAK_AGN": (
-        "zobov-Flamingo_outputWEAK_AGN_cat.txt",
-        "L1000N1800_HYDRO_WEAK_AGN_0.0stellar_mass_cut.h5",
-        r"fgas$+2\sigma$",
-        "#ABD0E6"
-    ),
+#     "WEAK_AGN": (
+#         "zobov-Flamingo_outputWEAK_AGN_cat.txt",
+#         "L1000N1800_HYDRO_WEAK_AGN_0.0stellar_mass_cut.h5",
+#         r"fgas$+2\sigma$",
+#         "#ABD0E6"
+#     ),
 
-    "STRONG_AGN": (
-        "zobov-Flamingo_outputSTRONG_AGN_cat.txt",
-        "L1000N1800_HYDRO_STRONG_AGN_0.0stellar_mass_cut.h5",
-        r"fgas$-2\sigma$",
-        "#6AAED6"
-    ),
+#     "STRONG_AGN": (
+#         "zobov-Flamingo_outputSTRONG_AGN_cat.txt",
+#         "L1000N1800_HYDRO_STRONG_AGN_0.0stellar_mass_cut.h5",
+#         r"fgas$-2\sigma$",
+#         "#6AAED6"
+#     ),
 
-    "STRONGER_AGN": (
-        "zobov-Flamingo_outputSTRONGER_AGN_cat.txt",
-        "L1000N1800_HYDRO_STRONGER_AGN_0.0stellar_mass_cut.h5",
-        r"fgas$-4\sigma$",
-        "#3787C0"
-    ),
+#     "STRONGER_AGN": (
+#         "zobov-Flamingo_outputSTRONGER_AGN_cat.txt",
+#         "L1000N1800_HYDRO_STRONGER_AGN_0.0stellar_mass_cut.h5",
+#         r"fgas$-4\sigma$",
+#         "#3787C0"
+#     ),
 
-    "STRONGEST_AGN": (
-        "zobov-Flamingo_outputSTRONGEST_AGN_cat.txt",
-        "L1000N1800_HYDRO_STRONGEST_AGN_0.0stellar_mass_cut.h5",
-        r"fgas$-8\sigma$",
-        "#105BA4"
-    ),
+#     "STRONGEST_AGN": (
+#         "zobov-Flamingo_outputSTRONGEST_AGN_cat.txt",
+#         "L1000N1800_HYDRO_STRONGEST_AGN_0.0stellar_mass_cut.h5",
+#         r"fgas$-8\sigma$",
+#         "#105BA4"
+#     ),
 
-    "STRONG_SUPERNOVA": (
-        "zobov-Flamingo_outputSTRONG_SUPERNOVA_cat.txt",
-        "L1000N1800_HYDRO_STRONG_SUPERNOVA_0.0stellar_mass_cut.h5",
-        r"$M_*-\sigma$",
-        "#FF8C40"
-    ),
+#     "STRONG_SUPERNOVA": (
+#         "zobov-Flamingo_outputSTRONG_SUPERNOVA_cat.txt",
+#         "L1000N1800_HYDRO_STRONG_SUPERNOVA_0.0stellar_mass_cut.h5",
+#         r"$M_*-\sigma$",
+#         "#FF8C40"
+#     ),
 
-    "JETS": (
-        "zobov-Flamingo_outputJETS_published_cat.txt",
-        "L1000N1800_HYDRO_JETS_published_0.0stellar_mass_cut.h5",
-        "JETS",
-        "#7EFF4B"
-    ),
+#     "JETS": (
+#         "zobov-Flamingo_outputJETS_published_cat.txt",
+#         "L1000N1800_HYDRO_JETS_published_0.0stellar_mass_cut.h5",
+#         "JETS",
+#         "#7EFF4B"
+#     ),
 
-    "STRONG_JETS": (
-        "zobov-Flamingo_outputSTRONG_JETS_published_cat.txt",
-        "L1000N1800_HYDRO_STRONG_JETS_published_0.0stellar_mass_cut.h5",
-        r"JETS fgas$-4\sigma$",
-        "#55E18E"
-    )
-}
+#     "STRONG_JETS": (
+#         "zobov-Flamingo_outputSTRONG_JETS_published_cat.txt",
+#         "L1000N1800_HYDRO_STRONG_JETS_published_0.0stellar_mass_cut.h5",
+#         r"JETS fgas$-4\sigma$",
+#         "#55E18E"
+#     )
+# }
 
 # -------------------------------
 # Hydro runs
 # -------------------------------
-# hydro_modes = {
-#     "FIDUCIAL_2p8": (
-#         "zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt",
-#         "L2800N5040_HYDRO_FIDUCIAL_0.0stellar_mass_cut.h5",
-#         r"L2p8$_{\rm m9}$",
-#         "#332288"
-#     )
+hydro_modes = {
+    "FIDUCIAL_2p8": (
+        "zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt",
+        "L2800N5040_HYDRO_FIDUCIAL_0.0stellar_mass_cut.h5",
+        r"L2p8$_{\rm m9}$",
+        "#332288"
+    )
 
-# }
+}
 
 
 # -------------------------------
@@ -162,27 +163,56 @@ r_bins_scaled = np.linspace(0, 5, 60)
 r_cent_phys   = 0.5*(r_bins_phys[:-1] + r_bins_phys[1:])
 r_cent_scaled = 0.5*(r_bins_scaled[:-1] + r_bins_scaled[1:])
 
+TREE = None
+
 # -------------------------------
 # Worker function for a single void (extracted from the loop body, unchanged logic)
 # -------------------------------
-def _process_single_void(i, pos, Rv, gx, gy, gz, box_size, r_bins_phys, r_bins_scaled, r_cent_phys, r_cent_scaled, save_dir):
+def _process_single_void(
+    i,
+    pos,
+    Rv,
+    box_size,
+    r_bins_phys,
+    r_bins_scaled,
+    r_cent_phys,
+    r_cent_scaled,
+    save_dir,
+):
 
-    xv, yv, zv = pos
+    # Find all galaxies within the largest physical radius
+    idx = TREE.query_ball_point(pos, r=r_bins_phys[-1])
 
-    dx = np.minimum(np.abs(gx - xv), box_size - np.abs(gx - xv))
-    dy = np.minimum(np.abs(gy - yv), box_size - np.abs(gy - yv))
-    dz = np.minimum(np.abs(gz - zv), box_size - np.abs(gz - zv))
+    if len(idx) == 0:
+        counts_phys = np.zeros(len(r_bins_phys) - 1, dtype=int)
+        counts_scaled = np.zeros(len(r_bins_scaled) - 1, dtype=int)
+    else:
+        galaxies = TREE.data[idx]
 
-    dist = np.sqrt(dx**2 + dy**2 + dz**2)
+        diff = galaxies - pos
 
-    counts_phys, _ = np.histogram(dist, bins=r_bins_phys)
-    shell_vol_phys = (4/3)*np.pi*(r_bins_phys[1:]**3 - r_bins_phys[:-1]**3)
+        # periodic wrapping
+        diff -= box_size * np.round(diff / box_size)
+
+        dist = np.linalg.norm(diff, axis=1)
+
+        counts_phys, _ = np.histogram(dist, bins=r_bins_phys)
+
+        dist_scaled = dist / Rv
+        counts_scaled, _ = np.histogram(dist_scaled, bins=r_bins_scaled)
+
+    shell_vol_phys = (
+        (4 / 3)
+        * np.pi
+        * (r_bins_phys[1:] ** 3 - r_bins_phys[:-1] ** 3)
+    )
+
     density_phys = counts_phys / shell_vol_phys
 
-    dist_scaled = dist / Rv
-    counts_scaled, _ = np.histogram(dist_scaled, bins=r_bins_scaled)
     shell_vol_scaled = (
-        (4/3)*np.pi*(r_bins_scaled[1:]**3 - r_bins_scaled[:-1]**3)
+        (4 / 3)
+        * np.pi
+        * (r_bins_scaled[1:] ** 3 - r_bins_scaled[:-1] ** 3)
         * Rv**3
     )
 
@@ -196,7 +226,7 @@ def _process_single_void(i, pos, Rv, gx, gy, gz, box_size, r_bins_phys, r_bins_s
         density_phys=density_phys,
         r_scaled=r_cent_scaled,
         density_scaled=density_scaled,
-        Rv=Rv
+        Rv=Rv,
     )
 
     return density_phys, density_scaled
@@ -205,22 +235,43 @@ def _process_single_void(i, pos, Rv, gx, gy, gz, box_size, r_bins_phys, r_bins_s
 # -------------------------------
 # Function to compute void profiles (now parallelised over voids with joblib)
 # -------------------------------
-def compute_void_profiles(void_positions, void_radii, save_dir, n_jobs=-1):
+def compute_void_profiles(
+        void_positions,
+        void_radii,
+        galaxy_positions,
+        save_dir,
+        n_jobs=25,
+    ):
 
     os.makedirs(save_dir, exist_ok=True)
 
-    results = Parallel(n_jobs=n_jobs)(
-        delayed(_process_single_void)(
+    global TREE
+
+    galaxy_positions %= box_size
+
+    TREE = cKDTree(
+        galaxy_positions,
+        boxsize=box_size,
+    )
+
+    results = results = Parallel(
+        n_jobs=n_jobs,
+        backend="threading",
+        )(delayed(_process_single_void)(
             i,
             void_positions[i],
             void_radii[i],
-            gx, gy, gz,
             box_size,
-            r_bins_phys, r_bins_scaled,
-            r_cent_phys, r_cent_scaled,
-            save_dir
+            r_bins_phys,
+            r_bins_scaled,
+            r_cent_phys,
+            r_cent_scaled,
+            save_dir,
         )
-        for i in tqdm(range(len(void_radii)), desc="Computing void profiles")
+        for i in tqdm(
+            range(len(void_radii)),
+            desc="Computing void profiles",
+        )
     )
 
     profiles_phys = [r[0] for r in results]
@@ -274,6 +325,8 @@ for mode, (void_file, galaxy_file, label, color) in hydro_modes.items():
     gy = galaxy_data["halo_centre_y"].values
     gz = galaxy_data["halo_centre_z"].values
 
+    galaxy_positions = np.column_stack((gx, gy, gz))
+
     # print min and max of galaxy positions
     print(f"Galaxy positions: x = [{gx.min():.2f}, {gx.max():.2f}] Mpc/h")
     print(f"Galaxy positions: y = [{gy.min():.2f}, {gy.max():.2f}] Mpc/h")
@@ -288,7 +341,8 @@ for mode, (void_file, galaxy_file, label, color) in hydro_modes.items():
     phys, scaled = compute_void_profiles(
         zobov_voids[:,1:4],
         zobov_voids[:,4],
-        save_dir
+        galaxy_positions,
+        save_dir,
     )
 
     all_profiles_phys[mode] = phys

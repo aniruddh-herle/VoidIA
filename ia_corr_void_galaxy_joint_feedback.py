@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from ia_correlation_measurements.compute_IA_corr_from_data import make_randoms_box, compute_2p_corr
+from ia_correlation_measurements_3d.compute_IA_corr_from_data import make_randoms_box, compute_2p_corr
 
 
 # --- User parameters ---
@@ -91,7 +91,7 @@ for mode in modes:
     # --- Correlation parameters ---
     config = {
         'col_names': col_names_box,
-        'nbins': 20,
+        'nbins': 25,
         'rmin': 1,
         'rmax': 600,
         'pi_max': 100,
@@ -109,41 +109,52 @@ for mode in modes:
     corr_voids = compute_2p_corr(data_positions, data_shapes, random_mock_box_positions, random_mock_box_shapes, config)
     corr_voids.compute_wgg()
     corr_voids.compute_wgp()
+    corr_voids.compute_xi3d_vv()
 
     corr_galaxies = compute_2p_corr(data_shapes, data_shapes, random_mock_box_shapes, random_mock_box_shapes, config)
     corr_galaxies.compute_wgg()
+    corr_galaxies.compute_xi3d_gg()
 
     # --- Stack results and save ---
     stacked_data = np.stack([
-        corr_voids.wgg.rp, corr_voids.wgg.xip,
-        corr_voids.wgg.std_from_cov,
-
+        
         corr_voids.wgp.rp, corr_voids.wgp.xip,
         corr_voids.wgp.std_from_cov,
 
         corr_galaxies.wgg.rp, corr_galaxies.wgg.xip,
-        corr_galaxies.wgg.std_from_cov
+        corr_galaxies.wgg.std_from_cov,
         
+        corr_voids.xi_vv.r, corr_voids.xi_vv.xi,
+        corr_voids.xi_vv.std_from_cov,
+
+        corr_galaxies.xi_gg.r, corr_galaxies.xi_gg.xi,
+        corr_galaxies.xi_gg.std_from_cov
+
     ], axis=1)
 
     df = pd.DataFrame(
         stacked_data,
-        columns=['wvv_rp','wvv_xip',
-                'wvv_std_from_cov',
+        columns=[
                 'wvp_rp','wvp_xip',
-                'wvp_std_from_cov',
+                'wvp_err',
+
                 'wgg_rp', 'wgg_xip',
-                'wgg_std_from_cov']
+                'wgg_err',
+
+
+                'xi_vv_r', 'xi_vv', 'xi_vv_err',
+                
+                'xi_gg_r', 'xi_gg', 'xi_gg_err']
     )
 
-    df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'.h5',
+    df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_joint3d.h5',
             key='a')
 
-    np.save(f'/disks/shear16/herle/correlations1/wvv_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'.npy', corr_voids.wgg.cov_jk)
-    np.save(f'/disks/shear16/herle/correlations1/wvv_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'.npy', corr_voids.wgg.xip_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wvp_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_joint3d.npy', corr_voids.wgp.cov_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wvp_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_joint3d.npy', corr_voids.wgp.xip_jk)
 
-    np.save(f'/disks/shear16/herle/correlations1/wvp_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'.npy', corr_voids.wgp.cov_jk)
-    np.save(f'/disks/shear16/herle/correlations1/wvp_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'.npy', corr_voids.wgp.xip_jk)
-
-    np.save(f'/disks/shear16/herle/correlations1/wgg_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'.npy', corr_galaxies.wgg.cov_jk)
-    np.save(f'/disks/shear16/herle/correlations1/wgg_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'.npy', corr_galaxies.wgg.xip_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wgg_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_joint3d.npy', corr_galaxies.wgg.cov_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wgg_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_joint3d.npy', corr_galaxies.wgg.xip_jk)
+    
+    np.save(f'/disks/shear16/herle/correlations1/xi_vv_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_joint3d.npy', corr_voids.xi_vv.cov_jk)
+    np.save(f'/disks/shear16/herle/correlations1/xi_gg_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_joint3d.npy', corr_galaxies.xi_gg.cov_jk)

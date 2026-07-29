@@ -7,8 +7,8 @@ from ia_correlation_measurements.compute_IA_corr_from_data import make_randoms_b
 
 # --- User parameters ---
 path = '/disks/shear16/herle/shape_catalogues/catalogs/mass_cut_12/'
-#run = 'L2800N5040'  # change this to 'L1000N1800' for the smaller box
-run = 'L1000N1800'  
+run = 'L2800N5040'  # change this to 'L1000N1800' for the smaller box
+#run = 'L1000N1800'  
 redshift = '0.0'
 
 # --- Determine box size automatically ---
@@ -24,7 +24,8 @@ Rmin, Rmax = 10, 20
 print("Rmin, Rmax = ", (Rmin, Rmax))
 
 h=0.681
-modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA', 'JETS_published', 'STRONG_JETS_published']
+# modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA', 'JETS_published', 'STRONG_JETS_published']
+modes = ['FIDUCIAL']
 
 for mode in modes:
     print(f"Processing {mode}")
@@ -53,7 +54,8 @@ for mode in modes:
     print(len(data_shapes), "galaxies with N_stellar > 300")
     data_shapes['weight'] = np.ones(len(data_shapes['halo_centre_x']))
 
-    voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_output' + mode + '_cat.txt')
+    # voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_output' + mode + '_cat.txt')
+    voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_output' + mode + '_2gigabox_cat.txt')
     #h = 0.681
     #voids[:, 1:4] /= h
     print("Void x range: ", voids[:, 1].min(), voids[:, 1].max())
@@ -98,7 +100,7 @@ for mode in modes:
         'mubins': 10,
         'NPatches': 125,
         'delete_n': 1,
-        'ncores': 192,
+        'ncores': 80,
         'slop': 0.,
         'box': True,
         'box_size': box_size * h
@@ -122,11 +124,11 @@ for mode in modes:
                 ]
     )
 
-    df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_gg.h5',
+    df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_2p8_'+redshift+'_gg.h5',
             key='a')
 
-    np.save(f'/disks/shear16/herle/correlations1/wgp_cov_jk_voids_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_gg.npy', corr_void.wgp.cov_jk)
-    np.save(f'/disks/shear16/herle/correlations1/wgp_xip_jk_voids_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_gg.npy', corr_void.wgp.xip_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wgp_cov_jk_voids_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_2p8_'+redshift+'_gg.npy', corr_void.wgp.cov_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wgp_xip_jk_voids_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_2p8_'+redshift+'_gg.npy', corr_void.wgp.xip_jk)
 
 
     corr_galaxy = compute_2p_corr(data_shapes, data_shapes, random_mock_box_shapes, random_mock_box_shapes, config)
@@ -146,7 +148,7 @@ for mode in modes:
                 'wgg_std_from_cov']
     )
 
-    df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_revolver_voids_hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_gg.h5',
+    df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_revolver_voids_hMpc_'+run+'_HYDRO_'+mode+'_2p8_'+redshift+'_gg.h5',
             key='a')
-    np.save(f'/disks/shear16/herle/correlations1/wgg_cov_jk_revolver_voids_hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_gg.npy', corr_galaxy.wgg.cov_jk)
+    np.save(f'/disks/shear16/herle/correlations1/wgg_cov_jk_revolver_voids_hMpc_'+run+'_HYDRO_'+mode+'_2p8_'+redshift+'_gg.npy', corr_galaxy.wgg.cov_jk)
     

@@ -73,14 +73,18 @@ def smooth(delta_v, window_length=1001, polyorder=3):
 
     return interp_back(logk)
 
-modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
-mean_densities = [1.383265e-02, 1.383626e-02, 1.420568e-02, 1.438745e-02, 1.495675e-02, 1.225041e-02]
+# modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
+# mean_densities = [1.383265e-02, 1.383626e-02, 1.420568e-02, 1.438745e-02, 1.495675e-02, 1.225041e-02]
+
+modes = ['FIDUCIAL_2p8']
+mean_densities = [2.014269e-02]
+
 
 for i in range(len(modes)):
 
     print(modes[i])
 
-    profile_dir = f"/disks/shear16/herle/void_profiles/zobov_hydro2/{modes[i]}/"
+    profile_dir = f"/disks/shear16/herle/void_profiles/zobov_hydro4/{modes[i]}/"
     mean_density = mean_densities[i]
 
     print("Mean density (Mpc^-3/h^3): ", mean_density)

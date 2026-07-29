@@ -52,6 +52,7 @@ modes = [
     'STRONG_SUPERNOVA'
 ]
 
+
 FLAMINGO_colors = [
     '#117733',
     '#ABD0E6',

@@ -315,111 +315,6 @@ wVI *= h
 
 model_rp = rp_array * h
 
-# wgg
-
-# # Then, we initialise the power spectra in the predictor
-# predictor = galaxyAlignmentPredictor(
-#     cosmology=cosmo_ccl,
-#     redshift_list=redshift_list,
-#     logger=logger,
-# )
-
-# predictor.initialise_power_spectra(
-#     k_input=k_array,
-#     pk_input=pk_input,
-#     probetype_order = ['gg'],  # order 2 for g+, order 0 for gg
-# )
-
-# # The rest of the procedure is the same as above
-# predictor.calculate_estimators(
-#     rp_support=rp_array,
-#     beta_shape=0, # No RSD, for example in real space
-#     beta_density=0, # No RSD, for example in real space
-#     pi_max=pi_max,
-# )
-
-
-# # Retrieve projection estimators as arrays
-# w_arr, xi_arr = predictor.return_all_estimators_as_arrays(
-#     rp_support=rp_array,
-#     r_support=r_array,
-# )
-
-
-# w_gg =  w_arr[:, 0, 0]
-
-
-# We need to create k_array and pk_array as np.ndarrays in the format (n_k, n_pk, n_redshifts). 
-# We use here the vanilla g+ and gg obtained from the 3d matter power spectrum
-# k_array_single = np.geomspace(1e-5, 5e2, 1000)  # shape (n_k,)
-# k_array = np.tile(k_array_single, (len(redshift_list), 2, 1)).T
-# pk_input = np.zeros((len(k_array_single), 2, len(redshift_list)))  # shape (n_k, n_pk, n_redshifts)
-
-# # Fill pk_input with g+ and gg power spectra
-# powerSpectrumHandler = powerSpectrum()
-# for idx_z, z in enumerate(redshift_list):
-#     pkmm_ccl = powerSpectrumHandler.ccl_power_spectrum(
-#         cosmo=cosmo_ccl,
-#         k_input=k_array_single,
-#         redshift=z,
-#         pk_type='nonlinear_matter'
-#     )
-
-#     # Initialise power spectra
-#     pkgp = powerSpectrumHandler.convert_pk_matter_to_pk_gplus(
-#         pk_matter=pkmm_ccl,
-#         cosmo=cosmo_ccl,
-#         redshift=z
-#     )
-#     pkgg = powerSpectrumHandler.convert_pk_matter_to_pk_gg(
-#         pk_matter=pkmm_ccl,
-#         cosmo=cosmo_ccl,
-#         redshift=z,
-#         )
-
-#     pk_input[:, 0, idx_z] = pkgp
-#     pk_input[:, 1, idx_z] = pkgg
-
-# # Then, we initialise the power spectra in the predictor
-# predictor = galaxyAlignmentPredictor(
-#     cosmology=cosmo_ccl,
-#     redshift_list=redshift_list,
-#     logger=logger,
-# )
-# predictor.initialise_power_spectra(k_input=k_array,
-#     pk_input=pk_input,
-#     probetype_order = ['g+', 'gg'],
-# )
-
-# # The rest of the procedure is the same as above
-# predictor.calculate_estimators(
-#     rp_support=rp_array,
-#     beta_shape=0, # No RSD, for example in real space
-#     beta_density=0, # No RSD, for example in real space
-#     pi_max=pi_max,
-# )
-
-
-# # Retrieve projection estimators as arrays
-# w_arr, xi_arr = predictor.return_all_estimators_as_arrays(
-#     rp_support=rp_array,
-#     r_support=r_array,
-# )
-
-# # Retrieve splines for projection estimators
-# # projection_splines is a list of lists of interp1d objects
-# # Outer list runs over redshifts, inner list over power spectrum types (g+, gg)
-# projection_splines = predictor.return_projection_splines()
-# multipole_splines = predictor.return_multipole_splines()
-
-# for idx_z, z in enumerate(redshift_list):
-#     w_gg_spline = projection_splines[idx_z][1]  # gg projection spline
-#     w_gg_at_rp = w_gg_spline(rp_array)
-
-
-
-# w_gg =  w_gg_at_rp
-
 # Pi_max for projection integrals
 pi_max = 100.0  # in Mpc/h
 
@@ -534,16 +429,7 @@ def model_wgg(p):
 
     return model_rp, wgg_model
 
-def model_wvv(p):
 
-    b_g = p[3]
-    b_v = p[2]
-
-
-    wgg_model = w_gg.copy()
-    wvv_model = ((b_g/b_v)**2)*wgg_model
-
-    return model_rp, wvv_model
 
 A_1v, A_2v, b_v, b_g = 5.0, 5.0, 1.3, 1.6
 
@@ -553,7 +439,7 @@ rp_model_VI, wVI_model   = model_wVI(p)      # returns only the VI part
 rp_model_VII, wVII_model = model_wVII(p)     # returns only the VII part
 
 rp_model_wgg, wgg_model = model_wgg(p)
-rp_model_wvv, wvv_model = model_wvv(p)
+
 
 
 run = 'L1000N1800'
@@ -573,6 +459,14 @@ df = pd.read_hdf(meas_file)
 rp_wvv = df['wvv_rp'].values
 wvv = df['wvv_xip'].values
 wvv_err = df['wvv_std_from_cov'].values
+xi_vv = df['xi_vv'].values
+xi_jk = np.load('/disks/shear16/herle/correlations1/xi_vv_jk_voids_joint_revolver_10_20hMpc_'+run+'_HYDRO_FIDUCIAL_'+redshift+'.npy')
+X = xi_jk[:, 0, :]   # because npi = 1
+Njk = X.shape[0]
+mean = X.mean(axis=0)
+diff = X - mean
+cov = (Njk - 1) / Njk * diff.T @ diff
+xi_vv_err = np.sqrt(np.diag(cov))
 
 rp_wvp = df['wvp_rp'].values
 wvp = df['wvp_xip'].values
@@ -581,6 +475,27 @@ wvp_err = df['wvp_std_from_cov'].values
 rp_wgg = df['wgg_rp'].values
 wgg = df['wgg_xip'].values
 wgg_err = df['wgg_std_from_cov'].values
+
+xi_gg = df['xi_gg'].values
+xi_jk = np.load('/disks/shear16/herle/correlations1/xi_gg_jk_voids_joint_revolver_10_20hMpc_'+run+'_HYDRO_FIDUCIAL_'+redshift+'.npy')
+X = xi_jk[:, 0, :]   # because npi = 1
+Njk = X.shape[0]
+mean = X.mean(axis=0)
+diff = X - mean
+cov = (Njk - 1) / Njk * diff.T @ diff
+xi_gg_err = np.sqrt(np.diag(cov))
+
+def model_xi_vv(p):
+
+    b_g = p[3]
+    b_v = p[2]
+
+
+    xi_vv_model = ((b_g/b_v)**2)*xi_gg
+
+    return model_rp, xi_vv_model
+
+rp_model_xi_vv, xi_vv_model = model_xi_vv(p)
 
 # --------------------------
 # Figure
@@ -657,8 +572,8 @@ ax = axs[2]
 
 ax.errorbar(
     rp_wvv,
-    (rp_wvv * wvv),
-    yerr=(rp_wvv * wvv_err),
+    (xi_vv),
+    yerr=(xi_vv_err),
     fmt='o',
     mfc='k',
     mec='k',
@@ -666,7 +581,7 @@ ax.errorbar(
     capsize=3
 )
 
-ax.plot(rp_model_wvv, rp_model_wvv*wvv_model, ls='--')
+ax.plot(rp_model_wvv, xi_vv_model, ls='--')
 
 ax.axhline(0, color='k', ls=':')
 
@@ -674,7 +589,7 @@ ax.set_xscale('log')
 
 
 ax.set_xlabel(r'$r_p$ [Mpc/h]')
-ax.set_ylabel(r'$r_p w_{\rm vv}$')
+ax.set_ylabel(r'$xi_{\rm vv}$')
 
 
 plt.tight_layout()

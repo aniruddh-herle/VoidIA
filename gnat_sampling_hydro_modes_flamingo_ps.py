@@ -461,7 +461,7 @@ for mode, ps_mode in zip(modes, ps_modes):
         cov_arr = cov_mat.values
         inv_cov = np.linalg.pinv(cov_arr)
 
-        filename = '/disks/shear16/herle/models/models/nautilus_chain_voids_hMpc_L1000N1800_HYDRO_'+mode+'_0.0_gg.npz'
+        filename = '/disks/shear16/herle/models/models/nautilus_chain_voids_hMpc_L1000N1800_HYDRO_'+mode+'_0.0_gg2.npz'
         samples, weights, logl = read_nautilus_samples(filename)
         getdist = MCSamples(samples=samples, 
                                     weights=weights,
