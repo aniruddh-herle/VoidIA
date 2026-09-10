@@ -228,13 +228,15 @@ rp_values2v = np.logspace(-1, np.log10(900), 200)
 
 # Define scales at which to calculate estimators
 
-rp_array_hMpc = rp_values2v          # rename for clarity — this IS the hMpc grid
-rp_array = rp_array_hMpc / h         # physical Mpc, for the predictor
+# rp_array_hMpc = rp_values2v          # rename for clarity — this IS the hMpc grid
+# rp_array = rp_array_hMpc / h         # physical Mpc, for the predictor
+# r_array = rp_array
+
+# pi_max_hMpc = 100.0
+# pi_max = pi_max_hMpc / h
+pi_max = 100
+rp_array = rp_values2v
 r_array = rp_array
-
-pi_max_hMpc = 100.0
-pi_max = pi_max_hMpc / h
-
 
 # We need to create k_array and pk_array as np.ndarrays in the format (n_k, n_pk, n_redshifts). 
 # We use here the vanilla g+ and gg obtained from the 3d matter power spectrum
@@ -392,7 +394,7 @@ for mode, ps_mode in zip(modes, ps_modes):
 
 
 
-    #run()
+    run()
 
     filename = '/disks/shear16/herle/models/models/nautilus_chain_voids_hMpc_L1000N1800_HYDRO_'+mode+'_0.0_gg_joint3d.npz'
     samples, weights, logl = read_nautilus_samples(filename)
@@ -632,6 +634,8 @@ for mode, ps_mode in zip(modes, ps_modes):
 
     w_2v =  w_arr[:, 0, 0]
 
+    bin_index_map = {(0,10): 0, (10,20): 1, (20,30): 2, (30,50): 3}
+
     for delta_bin, (Rmin, Rmax) in enumerate(r_bins):
         Rv = Rv_median[mode][(Rmin, Rmax)]
 
@@ -643,14 +647,15 @@ for mode, ps_mode in zip(modes, ps_modes):
 
         # rest of your calculations
 
-
-        delta_v = np.load(f'/disks/shear16/herle/code/zobov_{mode}_void_delta_k_bin{str(delta_bin)}_raw.npy')
-
+        # Map r_bin range to the correct file index
+        
+        bin_idx = bin_index_map[(Rmin, Rmax)]
+        delta_v = np.load(f'/disks/shear16/herle/code/temp_data/zobov_{mode}_void_delta_k_bin{str(bin_idx)}_raw.npy')  # ← bin_idx
 
         # Reconstruct the k-grid delta_v was actually saved on
         # (must match the void script exactly: log10kmin=-5, log10kmax=2, N=1000001, then *h)
         
-        k_void = k_native * h                     # Mpc^-1, matches delta_v's saved values
+        k_void = k_native                    # Mpc^-1, matches delta_v's saved values
 
         assert delta_v.shape[0] == k_void.shape[0], \
             f"delta_v has {delta_v.shape[0]} points but k_void has {k_void.shape[0]}"
@@ -712,13 +717,15 @@ for mode, ps_mode in zip(modes, ps_modes):
 
         wVII = w_2v.copy()
         wVII *= scaling
-        wVII *=h
+        #wVII *=h
 
         wVI = w_1v.copy()
         wVI *= scaling
-        wVI *= h
+        #wVI *= h
 
-        model_rp = rp_array * h
+        # model_rp = rp_array * h
+        model_rp = rp_array 
+
 
         model_mask_VI = (model_rp >= lower_rp_VI) & (model_rp <= upper_rp_VI)
         model_mask_VII = (model_rp >= lower_rp_VII) & (model_rp <= upper_rp_VII)
@@ -855,7 +862,7 @@ for mode, ps_mode in zip(modes, ps_modes):
 
             output_path = '/disks/shear16/herle/models/models/'
         
-            filename = output_path + f"nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb.h5"
+            filename = output_path + f"nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb_v2.h5"
             
             sampler = Sampler(
                 prior_obj,
@@ -872,7 +879,7 @@ for mode, ps_mode in zip(modes, ps_modes):
             weights = np.exp(log_w)
             logz = sampler.log_z
             output_file = (output_path +
-                        f"nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb.npz")
+                        f"nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb_v2.npz")
 
             np.savez(output_file,
                     samples=points,
@@ -883,12 +890,12 @@ for mode, ps_mode in zip(modes, ps_modes):
             print(f"Saved results to {output_file}")
 
 
-        #run()
+        run()
 
         names = ['A1_v','A2_v']  
         labels = ['A1_v','A2_v']
 
-        filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb.npz'
+        filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb_v2.npz'
         samples, weights, logl = read_nautilus_samples(filename)
         getdist = MCSamples(samples=samples, 
                                     weights=weights,
@@ -1071,4 +1078,4 @@ for mode, ps_mode in zip(modes, ps_modes):
         ax_res.set_ylabel(r'$(\mathrm{Data}-\mathrm{Model})/\mathrm{Data}$ [%]')
 
         plt.tight_layout()
-        plt.savefig('/disks/shear16/herle/code/plots/check_A1_A2_fits.png')
+        plt.savefig('/disks/shear16/herle/code/plots/check_A1_A2_fits_v2.png')

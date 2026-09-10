@@ -162,7 +162,7 @@ for i in range(len(modes)):
     print(modes[i])
     print("-----------------------------")
 
-    delta_v = np.load(f'/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin0_raw.npy')
+    delta_v = np.load(f'/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_raw.npy')
 
     # Reconstruct the k-grid delta_v was actually saved on
     # (must match the void script exactly: log10kmin=-5, log10kmax=2, N=1000001, then *h)
