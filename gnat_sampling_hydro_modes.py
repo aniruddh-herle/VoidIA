@@ -137,7 +137,8 @@ w_2v =  w_arr[:, 0, 0]
 
 h = 0.681
 
-modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
+# modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
+modes = ['FIDUCIAL']
 
 k_native = np.logspace(-5, 2, 1000001)   # h/Mpc
 
@@ -441,7 +442,7 @@ for i in range(len(modes)):
         A1_v = p[0]
 
         wVI_model = wVI[model_mask_VI].copy()
-        wVI_model *= A1_v
+        wVI_model *= A1_v * 1.530
 
         return model_rp[model_mask_VI], wVI_model
 
@@ -498,7 +499,7 @@ for i in range(len(modes)):
 
         output_path = '/disks/shear16/herle/models/models/'
     
-        filename = output_path + f"nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv10_20Mpc_pimax100_0.0_JK125.h5"
+        filename = output_path + f"nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv10_20Mpc_pimax100_0.0_JK125_bgtest.h5"
         
         sampler = Sampler(
             prior_obj,
@@ -515,7 +516,7 @@ for i in range(len(modes)):
         weights = np.exp(log_w)
         logz = sampler.log_z
         output_file = (output_path +
-                    f"nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv10_20Mpc_pimax100_0.0_JK125.npz")
+                    f"nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv10_20Mpc_pimax100_0.0_JK125_bgtest.npz")
 
         np.savez(output_file,
                 samples=points,

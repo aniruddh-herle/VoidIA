@@ -59,12 +59,13 @@ z=0
 
 kmin, kmax = 1e-5, 1e2
 
-rp_values2v = np.logspace(-1, np.log10(900), 300)
+rp_values2v = np.logspace(-1, np.log10(900), 300) # Mpc/h
 
 # Define scales at which to calculate estimators
 rp_array = rp_values2v
 r_array = rp_array
 
+h = 0.681
 # Pi_max for projection integrals
 pi_max = 100.0  # in Mpc
 
@@ -448,12 +449,14 @@ w_2v =  w_arr[:, 0, 0]
 
 h = 0.681
 
-delta_v = np.load('/disks/shear16/herle/code/zobov_FIDUCIAL_void_delta_k_bin0_raw.npy')
+delta_v = np.load('/disks/shear16/herle/code/temp_data/zobov_FIDUCIAL_void_delta_k_bin1_raw.npy')
+
 
 # Reconstruct the k-grid delta_v was actually saved on
 # (must match the void script exactly: log10kmin=-5, log10kmax=2, N=1000001, then *h)
 k_native = np.logspace(-5, 2, 1000001)   # h/Mpc
-k_void = k_native * h                     # Mpc^-1, matches delta_v's saved values
+k_void = k_native                
+# k_void = k_native                  
 
 assert delta_v.shape[0] == k_void.shape[0], \
     f"delta_v has {delta_v.shape[0]} points but k_void has {k_void.shape[0]}"
@@ -519,13 +522,14 @@ scaling = C1rhocrit*cosmo_ccl['Omega_m']/(np.pi**2)/ccl.growth_factor(cosmo_ccl,
 
 wVII = w_2v.copy()
 wVII *= scaling
-wVII *=h
+#wVII *=h
 
 wVI = w_1v.copy()
 wVI *= scaling
-wVI *= h
+#wVI *= h
 
-model_rp = rp_array * h
+# model_rp = rp_array * h
+model_rp = rp_array
 
 # model_rp = model_rp /h  # in Mpc
 # print("Model rp range: ", model_rp.min(), model_rp.max())
@@ -588,7 +592,7 @@ def model_wVII(p):
 
     return model_rp[model_mask_VII], wVII_model
 
-A, b = 5.5, 0.8
+A, b = 2.0, 0.8
 
 p = [A, b]
 

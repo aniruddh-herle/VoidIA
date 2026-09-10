@@ -76,8 +76,12 @@ def smooth(delta_v, window_length=1001, polyorder=3):
 # modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
 # mean_densities = [1.383265e-02, 1.383626e-02, 1.420568e-02, 1.438745e-02, 1.495675e-02, 1.225041e-02]
 
-modes = ['FIDUCIAL_2p8']
-mean_densities = [2.014269e-02]
+modes = ['FIDUCIAL']
+mean_densities = [1.383265e-02]
+
+
+# modes = ['FIDUCIAL_2p8']
+# mean_densities = [2.014269e-02]
 
 
 for i in range(len(modes)):
@@ -256,11 +260,12 @@ for i in range(len(modes)):
     delta_k_3 /= h**3        # amplitude: (Mpc/h)^3 -> Mpc^3
 
     k = k_native * h
+    #k = k_native
 
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_Rvbin0.npy", delta_k_0)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_Rvbin1.npy", delta_k_1)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_Rvbin2.npy", delta_k_2)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_Rvbin3.npy", delta_k_3)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin0.npy", delta_k_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin1.npy", delta_k_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin2.npy", delta_k_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin3.npy", delta_k_3)
 
     # plot all together
     plt.figure(figsize=(5,5))
@@ -300,9 +305,6 @@ for i in range(len(modes)):
 
     logk_uniform = np.linspace(logk.min(), logk.max(), N_log)
 
-
-    
-
     smooth_delta_0 = smooth(delta_k_0)
     smooth_delta_1 = smooth(delta_k_1)
     smooth_delta_2 = smooth(delta_k_2)
@@ -311,14 +313,14 @@ for i in range(len(modes)):
     # -----------------------------
     # save arrays
     # -----------------------------
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin0_raw.npy", delta_k_0)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin0_smooth.npy", smooth_delta_0)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin1_raw.npy", delta_k_1)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin1_smooth.npy", smooth_delta_1)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin2_raw.npy", delta_k_2)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin2_smooth.npy", smooth_delta_2)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin3_raw.npy", delta_k_3)
-    np.save(f"/disks/shear16/herle/code/zobov_{modes[i]}_void_delta_k_bin3_smooth.npy", smooth_delta_3)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_raw.npy", delta_k_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_smooth.npy", smooth_delta_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_raw.npy", delta_k_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_smooth.npy", smooth_delta_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_raw.npy", delta_k_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_smooth.npy", smooth_delta_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_raw.npy", delta_k_3)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_smooth.npy", smooth_delta_3)
 
 
     # =====================================================

@@ -334,7 +334,7 @@ for mode, (void_file, galaxy_file, label, color) in hydro_modes.items():
     volume = box_size**3
     mean_densities[label] = len(galaxy_data) / volume
 
-    print(f"Mean density for {label}: {mean_densities[label]:.6e} Mpc^-3/h^3")
+    print(f"Mean density for {label}: {mean_densities[label]:.6e} Mpc^-3/h^3") #????#
 
     save_dir = os.path.join(save_base_dir, mode)
 

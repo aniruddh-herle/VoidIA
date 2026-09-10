@@ -19,7 +19,7 @@ elif 'L1000' in run:
 else:
     raise ValueError("Unknown catalog. Please set box_size manually.")
 
-Rmin, Rmax = 10, 20
+Rmin, Rmax = 0, 10
 
 print("Rmin, Rmax = ", (Rmin, Rmax))
 

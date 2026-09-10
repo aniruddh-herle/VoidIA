@@ -190,7 +190,7 @@ k = k_native * h
 # delta_k_1 = hankel_transform(r_trunc, delta_1_trunc, k)
 # delta_k_2 = hankel_transform(r_trunc, delta_2_trunc, k)
 
-np.save("/disks/shear16/herle/code/zobov_fiducial_void_Rvbin01.npy", delta_k_0)
+np.save("/disks/shear16/herle/code/temp_data/trial_zobov_fiducial_void_Rvbin01.npy", delta_k_0)
 # np.save("/disks/shear16/herle/code/zobov_fiducial_void_Rvbin1.npy", delta_k_1)
 # np.save("/disks/shear16/herle/code/zobov_fiducial_void_Rvbin2.npy", delta_k_2)
 
@@ -273,8 +273,8 @@ smooth_delta_0 = smooth(delta_k_0)
 # -----------------------------
 # save arrays
 # -----------------------------
-np.save("/disks/shear16/herle/code/zobov_fiducial_void_delta_k_bin0_raw.npy", delta_k_0)
-np.save("/disks/shear16/herle/code/zobov_fiducial_void_delta_k_bin0_smooth.npy", smooth_delta_0)
+np.save("/disks/shear16/herle/code/temp_data/trial_zobov_fiducial_void_delta_k_bin0_raw.npy", delta_k_0)
+np.save("/disks/shear16/herle/code/temp_data/trial_zobov_fiducial_void_delta_k_bin0_smooth.npy", smooth_delta_0)
 # np.save("/disks/shear16/herle/code/zobov_fiducial_void_delta_k_bin1_raw.npy", delta_k_1)
 # np.save("/disks/shear16/herle/code/zobov_fiducial_void_delta_k_bin1_smooth.npy", smooth_delta_1)
 # np.save("/disks/shear16/herle/code/zobov_fiducial_void_delta_k_bin2_raw.npy", delta_k_2)

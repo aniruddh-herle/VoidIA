@@ -70,7 +70,7 @@ if str(rootpath) not in os.sys.path:
 from src.galaxy_alignment_prediction_tool.predictor import galaxyAlignmentPredictor
 from src.galaxy_alignment_prediction_tool.powerspectrum import powerSpectrum
 
-output_dir = "/disks/shear16/herle/code/"
+output_dir = "/disks/shear16/herle/code/temp_data/"
 
 om = 0.306
 h = 0.681
@@ -85,7 +85,7 @@ kz_min, kz_max = 1e-5, 1e2
 
 PIMAX = 100
 
-delta_v = np.load("/disks/shear16/herle/code/zobov_fiducial_void_delta_k_bin0_raw.npy")
+delta_v = np.load("/disks/shear16/herle/code/temp_data/zobov_fiducial_void_delta_k_bin0_raw.npy")
 
 N = delta_v.shape[0]
 k_native_hMpc = np.logspace(-5, 2, N)  # h/Mpc, matches delta_v point by point
@@ -198,7 +198,7 @@ predictor = galaxyAlignmentPredictor(
     logger=logger,
 )
 
-delta_v = np.load(f'/disks/shear16/herle/code/zobov_fiducial_void_delta_k_bin0_raw.npy')
+#delta_v = np.load(f'/disks/shear16/herle/code/temp_data/zobov_fiducial_void_delta_k_bin0_raw.npy')
 k_native = np.logspace(-5, 2, 1000001)   # h/Mpc
 
 h = 0.681

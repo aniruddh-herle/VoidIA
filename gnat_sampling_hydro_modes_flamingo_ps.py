@@ -131,8 +131,11 @@ powerSpectrumHandler = powerSpectrum()
 
 h = 0.681
 
-modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
-ps_modes = ['L1_m9', 'fgas+2σ', 'fgas-2σ', 'fgas-4σ', 'fgas-8σ', 'M_-σ']
+# modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
+# ps_modes = ['L1_m9', 'fgas+2σ', 'fgas-2σ', 'fgas-4σ', 'fgas-8σ', 'M_-σ']
+
+modes = ['FIDUCIAL_2p8']
+ps_modes = ['L2p8_m9']
 
 
 k_native = np.logspace(-5, 2, 1000001)   # h/Mpc
@@ -147,13 +150,18 @@ scaling = C1rhocrit*cosmo_ccl['Omega_m']/(np.pi**2)/ccl.growth_factor(cosmo_ccl,
 r_bins = [(0, 10), (10, 20), (20, 30), (30, 50)]
 
 # Median void radii
+# Rv_median = {
+#     'FIDUCIAL':         {(0,10): 8.46, (10,20):14.72, (20,30):23.17, (30,50):32.50},
+#     'WEAK_AGN':         {(0,10): 8.49, (10,20):14.65, (20,30):23.10, (30,50):32.15},
+#     'STRONG_AGN':       {(0,10): 8.41, (10,20):14.70, (20,30):22.94, (30,50):32.04},
+#     'STRONGER_AGN':     {(0,10): 8.44, (10,20):14.58, (20,30):23.10, (30,50):31.98},
+#     'STRONGEST_AGN':    {(0,10): 8.37, (10,20):14.62, (20,30):22.94, (30,50):31.90},
+#     'STRONG_SUPERNOVA': {(0,10): 8.59, (10,20):14.83, (20,30):23.19, (30,50):32.29},
+# }
+
+# Median void radii
 Rv_median = {
-    'FIDUCIAL':         {(0,10): 8.46, (10,20):14.72, (20,30):23.17, (30,50):32.50},
-    'WEAK_AGN':         {(0,10): 8.49, (10,20):14.65, (20,30):23.10, (30,50):32.15},
-    'STRONG_AGN':       {(0,10): 8.41, (10,20):14.70, (20,30):22.94, (30,50):32.04},
-    'STRONGER_AGN':     {(0,10): 8.44, (10,20):14.58, (20,30):23.10, (30,50):31.98},
-    'STRONGEST_AGN':    {(0,10): 8.37, (10,20):14.62, (20,30):22.94, (30,50):31.90},
-    'STRONG_SUPERNOVA': {(0,10): 8.59, (10,20):14.83, (20,30):23.19, (30,50):32.29},
+    'FIDUCIAL_2p8': {(0,10): 8.28, (10,20):14.37, (20,30):22.82, (30,50):31.92}
 }
 
 names = ['bg','b_dummy']  

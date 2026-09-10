@@ -356,7 +356,7 @@ for mode, ps_mode in zip(modes, ps_modes):
         return logl
 
 
-    n_cores = 10
+    n_cores = 80
 
     def run():
         n_live = 1000
@@ -674,7 +674,7 @@ for mode, ps_mode in zip(modes, ps_modes):
         interp_func = interp1d(logk, delta_v_on_target, kind="linear")
         delta_uniform = interp_func(logk_uniform)
 
-        window_length = 3001
+        window_length = 1001
         polyorder = 3
         if window_length % 2 == 0:
             window_length += 1
@@ -795,20 +795,19 @@ for mode, ps_mode in zip(modes, ps_modes):
 
             A1_v = p[0]
 
-            #bg = np.random.normal(bg, bg_error)
+            bg = np.random.normal(bg_best, bg_error)
 
             wVI_model = wVI[model_mask_VI].copy()
-            wVI_model *= A1_v * bg_best
-
+            wVI_model *= A1_v * bg
             return model_rp[model_mask_VI], wVI_model
 
         def model_wVII(p):
 
             A2_v = p[1]
-            #b_v = np.random.normal(bv_best, bv_err)
+            b_v = np.random.normal(bv_best, bv_err)
 
             wVII_model = wVII[model_mask_VII].copy()
-            wVII_model *= A2_v*bv_best
+            wVII_model *= A2_v*b_v
 
             return model_rp[model_mask_VII], wVII_model
 
@@ -848,14 +847,15 @@ for mode, ps_mode in zip(modes, ps_modes):
 
 
         box_size = args.box_size
-        n_cores = args.n_cores
+        print("box size: ", box_size)
+        
 
         def run():
             n_live = 3000
 
             output_path = '/disks/shear16/herle/models/models/'
         
-            filename = output_path + f"nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d.h5"
+            filename = output_path + f"nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb.h5"
             
             sampler = Sampler(
                 prior_obj,
@@ -872,7 +872,7 @@ for mode, ps_mode in zip(modes, ps_modes):
             weights = np.exp(log_w)
             logz = sampler.log_z
             output_file = (output_path +
-                        f"nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d.npz")
+                        f"nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb.npz")
 
             np.savez(output_file,
                     samples=points,
@@ -883,12 +883,12 @@ for mode, ps_mode in zip(modes, ps_modes):
             print(f"Saved results to {output_file}")
 
 
-        run()
+        #run()
 
         names = ['A1_v','A2_v']  
         labels = ['A1_v','A2_v']
 
-        filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d.npz'
+        filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{mode}_voids_{box_size}_Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_JK_flamingo_ps_joint3d_sampledb.npz'
         samples, weights, logl = read_nautilus_samples(filename)
         getdist = MCSamples(samples=samples, 
                                     weights=weights,
