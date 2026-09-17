@@ -1,0 +1,727 @@
+import numpy as np
+from scipy.interpolate import interp1d
+import pyccl as ccl
+import pyccl.ccllib as lib
+import pyccl.nl_pt as pt
+import glob
+import pandas as pd
+from nautilus import Sampler, Prior  # <<< moved Prior import here
+from multiprocessing import Pool
+
+
+import argparse
+
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-box_size', type=float, default=2800, help='Size of the box.')
+parser.add_argument('-n_cores', type=int, default=192, help='Number of CPU cores to use for multiprocessing.')
+args = parser.parse_args()
+
+from scipy.signal import savgol_filter
+from scipy.interpolate import interp1d
+
+# Create logger
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+if not logger.hasHandlers():
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+import pyccl as ccl
+import matplotlib.pyplot as plt
+import numpy as np
+from pathlib import Path
+
+# Import galaxy alignment predictor
+# Add root directory to path
+import sys
+script_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.abspath(os.path.join(script_dir, ".."))
+
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+    
+
+rootpath = Path('/disks/shear16/herle/code/GNAT')
+if str(rootpath) not in os.sys.path:
+    os.sys.path.append(str(rootpath))
+
+from src.galaxy_alignment_prediction_tool.predictor import galaxyAlignmentPredictor
+from src.galaxy_alignment_prediction_tool.powerspectrum import powerSpectrum
+
+import pandas as pd
+
+cosmo_ccl = ccl.Cosmology(
+    Omega_c=0.306-0.0486, 
+    Omega_b=0.0486,  
+    h=0.681, 
+    sigma8 = 0.807, 
+    n_s=0.967
+)
+
+# Define redshifts at which to calculate estimators
+redshift_list = np.array([0])
+
+
+kmin, kmax = 1e-5, 1e2
+
+rp_values2v = np.logspace(-1, np.log10(900), 200)
+
+# Define scales at which to calculate estimators
+rp_array = rp_values2v
+r_array = rp_array
+
+# Pi_max for projection integrals
+pi_max = 100.0  # in Mpc
+
+
+# We need to create k_array and pk_array as np.ndarrays in the format (n_k, n_pk, n_redshifts). 
+# We use here the vanilla g+ and gg obtained from the 3d matter power spectrum
+k_array_single = np.geomspace(kmin, kmax, 1000)  # shape (n_k,)
+k_array = np.tile(k_array_single, (len(redshift_list), 1, 1)).T
+pk_input = np.zeros((len(k_array_single), 1, len(redshift_list)))  # shape (n_k, n_pk, n_redshifts)
+
+# Fill pk_input with g+ and gg power spectra
+powerSpectrumHandler = powerSpectrum()
+for idx_z, z in enumerate(redshift_list):
+    pkmm_ccl = powerSpectrumHandler.ccl_power_spectrum(
+        cosmo=cosmo_ccl,
+        k_input=k_array_single,
+        redshift=z,
+        pk_type='nonlinear_matter'
+    )
+
+    pk_input[:, 0, idx_z] = -np.pi**2*pkmm_ccl
+
+# Then, we initialise the power spectra in the predictor
+predictor = galaxyAlignmentPredictor(
+    cosmology=cosmo_ccl,
+    redshift_list=redshift_list,
+    logger=logger,
+)
+
+# 2 void term
+
+predictor.initialise_power_spectra(
+    k_input=k_array,
+    pk_input=pk_input,
+    probetype_order = ['g+'],  # order 2 for g+, order 0 for gg
+)
+
+# The rest of the procedure is the same as above
+predictor.calculate_estimators(
+    rp_support=rp_array,
+    beta_shape=0, # No RSD, for example in real space
+    beta_density=0, # No RSD, for example in real space
+    pi_max=pi_max,
+)
+
+
+# Retrieve projection estimators as arrays
+w_arr, xi_arr = predictor.return_all_estimators_as_arrays(
+    rp_support=rp_array,
+    r_support=r_array,
+)
+
+
+w_2v =  w_arr[:, 0, 0]
+
+# 1 void term
+
+h = 0.681
+
+# modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
+modes = ['FIDUCIAL_2p8']
+
+k_native = np.logspace(-5, 2, 1000001)   # h/Mpc
+
+C1rhocrit = 0.0134
+z_i = 0.0
+scale_factor = 1.0/(1.0 + z_i)
+scaling = C1rhocrit*cosmo_ccl['Omega_m']/(np.pi**2)/ccl.growth_factor(cosmo_ccl, scale_factor)
+
+
+from getdist import plots, MCSamples
+
+def compute_chi2(logl, samples, corr):
+    logL_max = np.max(logl)
+    chi2_eff = -2 * logL_max
+    Ndata = len(corr)
+    Nparams_flat = samples.shape[1]
+    Ndof = Ndata - Nparams_flat
+    chi2_red = chi2_eff / Ndof
+    return chi2_eff, chi2_red
+
+
+def read_nautilus_samples(npz_filename):
+    data = np.load(npz_filename)
+    samples = data['samples']        # shape (Nsamples, Nparams)
+    weights = data['weights']        # shape (Nsamples,)
+    logl = data['logl']              # shape (Nsamples,)
+    return samples, weights, logl
+
+
+names = ['A1_v', 'b_v']
+labels = ['A1_v', 'b_v']
+
+# Define void radius bins
+void_bins = [(0, 10), (10, 20), (20, 30)]
+Rv_median = {
+    'FIDUCIAL':        [8.46, 14.72, 23.17],
+    'WEAK_AGN':        [8.49, 14.65, 23.10],
+    'STRONG_AGN':      [8.41, 14.70, 22.94],
+    'STRONGER_AGN':    [8.44, 14.58, 23.10],
+    'STRONGEST_AGN':   [8.37, 14.62, 22.94],
+    'STRONG_SUPERNOVA':[8.59, 14.83, 23.19],
+    'FIDUCIAL_2p8':    [9.48, 18.47, 24.26]
+}
+bin_labels = ['0_10', '10_20', '20_30']
+delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+
+chi2_results = {mode: {'bin_label': [], 'chi2_red': []} for mode in modes}
+
+for i in range(len(modes)):
+
+    print("-----------------------------")
+    print(modes[i])
+    print("-----------------------------")
+
+    for bin_idx, (void_bin, bin_label, delta_bin_label) in enumerate(
+        zip(void_bins, bin_labels, delta_v_bin_labels)
+    ):
+        Rv = Rv_median[modes[i]][bin_idx]
+
+        
+        print(f"  -- Void bin: {void_bin}, Rv={Rv}, bin_label={bin_label}")
+
+        # Update scale-dependent masks using current Rv
+        lower_rp_VI  = 6.0
+        upper_rp_VI  = 2.5 * Rv
+
+        lower_rp_VII = 4.0 * Rv
+        upper_rp_VII = 500.0
+
+        delta_v = np.load(
+            f'/disks/shear16/herle/code/temp_data/'
+            f'zobov_{modes[i]}_void_delta_k_{delta_bin_label}_raw_particles.npy'
+        )
+        # Reconstruct the k-grid delta_v was actually saved on
+        # (must match the void script exactly: log10kmin=-5, log10kmax=2, N=1000001, then *h)
+        
+        k_void = k_native                     # Mpc^-1, matches delta_v's saved values
+
+        assert delta_v.shape[0] == k_void.shape[0], \
+            f"delta_v has {delta_v.shape[0]} points but k_void has {k_void.shape[0]}"
+
+        # Interpolate delta_v(k) from its native grid onto k_array_single
+        logk_void = np.log10(k_void)
+        logk_target = np.log10(k_array_single)
+
+        interp_to_target = interp1d(
+            logk_void, delta_v, kind="linear",
+            bounds_error=False, fill_value=0.0
+        )
+        delta_v_on_target = interp_to_target(logk_target)   # shape (1000,), matches k_array_single
+
+        # --- now smooth on k_array_single's own log grid ---
+        logk = logk_target
+
+        N_log = 20000
+        logk_uniform = np.linspace(logk.min(), logk.max(), N_log)
+
+        interp_func = interp1d(logk, delta_v_on_target, kind="linear")
+        delta_uniform = interp_func(logk_uniform)
+
+        window_length = 3001
+        polyorder = 3
+        if window_length % 2 == 0:
+            window_length += 1
+
+        delta_uniform_smooth = savgol_filter(delta_uniform, window_length, polyorder)
+
+        interp_back = interp1d(logk_uniform, delta_uniform_smooth, kind="linear")
+        delta_v_smoothed = interp_back(logk)   # shape (1000,), exactly matches k_array_single
+
+        # --- reshape to match pk_input convention: (n_k, n_pk, n_redshifts) ---
+        pk_input_1v = np.zeros((len(k_array_single), 1, len(redshift_list)))
+        for idx_z, z in enumerate(redshift_list):
+            pk_input_1v[:, 0, idx_z] = -np.pi**2*delta_v_smoothed
+
+        predictor.initialise_power_spectra(
+            k_input=k_array,
+            pk_input=pk_input_1v,
+            probetype_order=['g+'],
+        )
+
+        predictor.calculate_estimators(
+            rp_support=rp_array,
+            beta_shape=0,
+            beta_density=0,
+            pi_max=pi_max,
+        )
+
+        w_arr, xi_arr = predictor.return_all_estimators_as_arrays(
+            rp_support=rp_array,
+            r_support=r_array,
+        )
+
+        w_1v = w_arr[:, 0, 0]
+
+
+        wVII = w_2v.copy()
+        wVII *= scaling
+        #wVII *=h
+
+        wVI = w_1v.copy()
+        wVI *= scaling
+        #wVI *= h
+
+        # model_rp = rp_array * h
+        model_rp = rp_array
+
+        model_mask_VI = (model_rp >= lower_rp_VI) & (model_rp <= upper_rp_VI)
+        model_mask_VII = (model_rp >= lower_rp_VII) & (model_rp <= upper_rp_VII)
+
+
+        #run = 'L1000N1800'
+        run = 'L2800N5040'
+        redshift = '0.0'
+
+        # -------------------------------------------------
+        # load measurement + JK realizations
+        # -------------------------------------------------
+        # meas_file = (
+        #     f'/disks/shear16/herle/correlations1/'
+        #     f'correlations_joint_revolver_{bin_label}hMpc_{run}'
+        #     f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical.h5'
+        # )
+
+        # wvp_JK_measured = np.load(
+        #     f'/disks/shear16/herle/correlations1/'
+        #     f'wvp_xip_jk_voids_joint_revolver_{bin_label}hMpc_{run}'
+        #     f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical.npy'
+        # )
+
+        meas_file = (
+            f'/disks/shear16/herle/correlations1/'
+            f'correlations_joint_revolver_{bin_label}hMpc_{run}'
+            f'_HYDRO_FIDUCIAL_{redshift}_env_dep_analytical.h5'
+        )
+
+        wvp_JK_measured = np.load(
+            f'/disks/shear16/herle/correlations1/'
+            f'wvp_xip_jk_voids_joint_revolver_{bin_label}hMpc_{run}'
+            f'_HYDRO_FIDUCIAL_{redshift}_env_dep_analytical.npy'
+        )
+
+        # -------------------------------------------------
+        # read measurement
+        # -------------------------------------------------
+        df = pd.read_hdf(meas_file, key='a')
+
+        rp_meas  = df['wvp_rp'].values
+        wvp_meas = df['wvp_xip'].values
+
+
+        # -------------------------------------------------
+        # build masks (same logic as before)
+        # -------------------------------------------------
+        mask_VI  = (rp_meas >= lower_rp_VI)  & (rp_meas <= upper_rp_VI)
+        mask_VII = (rp_meas >= lower_rp_VII) & (rp_meas <= upper_rp_VII)
+
+        mask_total = mask_VI | mask_VII
+
+        # -------------------------------------------------
+        rp_cut = rp_meas[mask_total]
+        corr   = wvp_meas[mask_total]
+
+        wvp_JK_cut = wvp_JK_measured[:, mask_total]
+
+
+        # -------------------------------------------------
+        # JK mean + diffs  (same structure as wgg/wgp code)
+        # -------------------------------------------------
+        wvp_mean = np.mean(wvp_JK_cut, axis=0)
+
+        wvp_diff = pd.DataFrame(
+            wvp_JK_cut - wvp_mean,
+            columns=rp_cut
+        )
+        # -------------------------------------------------
+        # FULL jackknife covariance  (IDENTICAL formula)
+        # -------------------------------------------------
+        NPatches = wvp_JK_cut.shape[0]
+
+        cov_mat = ((NPatches - 1) / NPatches) * np.sum(
+            np.einsum('ij,ik->ijk', wvp_diff, wvp_diff),
+            axis=0
+        )
+
+        cov_mat = pd.DataFrame(
+            data=cov_mat,
+            columns=rp_cut
+        )
+
+        cov_mat.set_index(rp_cut, inplace=True)
+
+        # --- plots per bin (unchanged) ---
+        fig, ax = plt.subplots()
+        im = ax.imshow(np.log10(np.abs(cov_mat)), origin='lower')
+        fig.colorbar(im, ax=ax)
+        plt.tight_layout()
+        plt.savefig(f'/disks/shear16/herle/code/plots/'
+            f'cov_void_corr_{modes[i]}_{bin_label}_particles_env_dep_analytical.png')
+        plt.close()
+
+        # -------------------------------------------------
+        # cache arrays for likelihood (same as old script)
+        # -------------------------------------------------
+        cov_arr = cov_mat.values
+        inv_cov = np.linalg.pinv(cov_arr)
+
+        # # -------------------------------------------------
+        # # Inverse covariance (same variable names)
+        # # -------------------------------------------------
+
+        # inv_cov = np.linalg.pinv(cov_arr)
+
+        def model_wVI(p):
+
+            A1_v = p[0]
+
+            wVI_model = wVI[model_mask_VI].copy()
+            wVI_model *= A1_v
+
+            return model_rp[model_mask_VI], wVI_model
+
+        def model_wVII(p):
+
+            A1_v = p[0]
+            b_v = p[1]
+
+            wVII_model = wVII[model_mask_VII].copy()
+            wVII_model *= A1_v*b_v
+
+            return model_rp[model_mask_VII], wVII_model
+
+
+        def log_likelihood(p):
+            
+            rp_model_VI, wVI_model   = model_wVI(p)      # returns only the VI part
+            rp_model_VII, wVII_model = model_wVII(p)     # returns only the VII part
+
+            # concatenate model pieces into one vector (matching data vector order)
+            rp_model_total = np.concatenate([rp_model_VI, rp_model_VII])
+            corr_model_total = np.concatenate([wVI_model, wVII_model])
+
+            # interpolate model onto the measured rp vector
+            corr_model_interpol = np.interp(rp_cut, rp_model_total, corr_model_total)
+
+            delta = (corr - corr_model_interpol)
+            chisq = delta.dot(inv_cov.dot(delta.T))
+            ll = -0.5 * chisq
+            if np.isnan(ll):
+                return -np.inf, chisq
+            return ll, chisq
+
+        prior_obj = Prior()  
+
+        param_names = ['A1_v', 'b_v']
+        prior_obj.add_parameter('A1_v', dist=(-10.0, 10.0))
+        prior_obj.add_parameter('b_v', dist=(-10.0, 10.0))
+
+
+
+        def loglikelihood_fn(p_dict):
+            # p_dict keys follow prior_obj keys order
+            p = np.array([p_dict[key] for key in param_names])
+            logl, _ = log_likelihood(p)
+            return logl
+
+
+        box_size = args.box_size
+        n_cores = args.n_cores
+
+        def run():
+            n_live = 5000
+
+            output_path = '/disks/shear16/herle/models/models/'
+        
+            # Sampler output filenames
+            filename = (
+                f'/disks/shear16/herle/models/models/'
+                f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
+                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical.h5'
+                )
+            sampler = Sampler(
+                prior_obj,
+                loglikelihood_fn,
+                n_live=n_live,
+                pool=n_cores if n_cores > 1 else None,
+                filepath=filename,
+                resume=False,
+                n_networks=32,
+            )
+            
+            sampler.run(verbose=True, discard_exploration=True)
+            points, log_w, log_l = sampler.posterior()
+            weights = np.exp(log_w)
+            logz = sampler.log_z
+            output_file = (
+                f'/disks/shear16/herle/models/models/'
+                f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
+                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical.npz'
+            )
+            np.savez(output_file,
+                    samples=points,
+                    logl=log_l,
+                    weights=weights,
+                    logz=logz)
+            
+            print(f"Saved results to {output_file}")
+
+
+        if __name__ == '__main__':
+            run()
+
+
+        filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv{bin_label}Mpc_seperate_env_dep_analytical.npz'
+        samples, weights, logl = read_nautilus_samples(filename)
+        getdist = MCSamples(samples=samples, 
+                                    weights=weights,
+                                    names=names, 
+                                    labels=labels, 
+                                    ignore_rows=0)
+
+        chi2_eff, chi2_red = compute_chi2(logl, samples, corr)    
+        print(f"[{modes[i]}] Reduced Chi2: ", chi2_red)
+
+        # ADD:
+        chi2_results[modes[i]]['bin_label'].append(bin_label)
+        chi2_results[modes[i]]['chi2_red'].append(chi2_red)
+
+
+        # Read A1_v
+        d = getdist.get1DDensity('A1_v')
+        xyind = np.where(d.P == np.amax(d.P))
+        A1v = d.x[xyind[0]][0]
+        errors_density = d.getLimits(0.68)
+        A1v_error = (errors_density[1] - errors_density[0]) / 2.0
+
+        # Read b_v (not A2_v)
+        d = getdist.get1DDensity('b_v')
+        xyind = np.where(d.P == np.amax(d.P))
+        bv = d.x[xyind[0]][0]
+        errors_density = d.getLimits(0.68)
+        bv_error = (errors_density[1] - errors_density[0]) / 2.0
+
+        # A1_best = A1v
+        # bv_best = bv
+
+        map_idx = np.argmax(logl)
+        A1_best = samples[map_idx, 0]  # true joint MAP
+        bv_best = samples[map_idx, 1]
+
+
+        wVI_bestfit  = wVI  * A1_best   # matches model_wVI hardcoded bg
+        wVII_bestfit = wVII * A1_best * bv_best  # matches model_wVII
+
+        # Posterior draws
+        Nsamp = 500
+        weights_norm = weights / np.sum(weights)
+        inds = np.random.choice(len(samples), size=Nsamp, p=weights_norm)
+        posterior_draws = samples[inds]
+
+        A1_draws = posterior_draws[:, 0]
+        bv_draws = posterior_draws[:, 1]
+
+        wVI_ens  = []
+        wVII_ens = []
+
+        for A1, bv_d in zip(A1_draws, bv_draws):
+            wVI_ens.append(wVI * A1)
+            wVII_ens.append(wVII * A1 * bv_d)
+
+        wVI_ens  = np.array(wVI_ens)
+        wVII_ens = np.array(wVII_ens)
+
+        p16_VI, p50_VI, p84_VI    = np.percentile(wVI_ens, [16, 50, 84], axis=0)
+        p16_VII, p50_VII, p84_VII = np.percentile(wVII_ens, [16, 50, 84], axis=0)
+
+        # -------------------------------------------------
+        # Data at the cut used in the fit (VI ∪ VII region)
+        # -------------------------------------------------
+        err_cut = np.sqrt(np.diag(cov_arr))
+
+        # split the cut points back into their VI/VII sub-masks, for interpolation below
+        mask_data_VI  = mask_VI[mask_total]
+        mask_data_VII = mask_VII[mask_total]
+
+        color = 'k'
+        label = modes[i]
+
+        # -------------------------------------------------
+        # Main panel
+        # -------------------------------------------------
+        fig, (ax_main, ax_res) = plt.subplots(
+            2, 1,
+            figsize=(14, 14),
+            sharex=True,
+            gridspec_kw={"height_ratios": [3, 1], "hspace": 0.05}
+        )
+
+        ax_main.plot(
+            model_rp[model_mask_VII],
+            model_rp[model_mask_VII] * wVII_bestfit[model_mask_VII],
+            color=color
+        )
+        ax_main.plot(
+            model_rp[model_mask_VI],
+            model_rp[model_mask_VI] * wVI_bestfit[model_mask_VI],
+            color=color
+        )
+
+        ax_main.errorbar(
+            rp_cut,
+            rp_cut * corr,
+            yerr=rp_cut * err_cut,
+            fmt='o',
+            capsize=3,
+            color=color,
+            label=label
+        )
+
+        ax_main.fill_between(
+            model_rp[model_mask_VI],
+            model_rp[model_mask_VI] * p16_VI[model_mask_VI],
+            model_rp[model_mask_VI] * p84_VI[model_mask_VI],
+            alpha=0.25,
+            color=color
+        )
+
+        ax_main.fill_between(
+            model_rp[model_mask_VII],
+            model_rp[model_mask_VII] * p16_VII[model_mask_VII],
+            model_rp[model_mask_VII] * p84_VII[model_mask_VII],
+            alpha=0.25,
+            color=color
+        )
+
+        # -------------------------------------------------
+        # Residuals
+        # -------------------------------------------------
+        model_at_data = np.full_like(rp_cut, np.nan)
+
+        model_at_data[mask_data_VI] = np.interp(
+            rp_cut[mask_data_VI],
+            model_rp[model_mask_VI],
+            wVI_bestfit[model_mask_VI]
+        )
+
+        model_at_data[mask_data_VII] = np.interp(
+            rp_cut[mask_data_VII],
+            model_rp[model_mask_VII],
+            wVII_bestfit[model_mask_VII]
+        )
+
+        residual = 100.0 * (corr - model_at_data) / corr
+        frac_err = 100.0 * err_cut / np.abs(corr)
+
+        ax_res.errorbar(
+            rp_cut,
+            residual,
+            yerr=frac_err,
+            fmt='o',
+            capsize=3,
+            color=color
+        )
+
+        # shaded 1-void/2-void regions
+        ax_main.axvspan(lower_rp_VI, upper_rp_VI, color='grey', alpha=0.08, zorder=0)
+        ax_main.axvspan(lower_rp_VII, upper_rp_VII, color='grey', alpha=0.08, zorder=0)
+
+        ax_res.axvspan(lower_rp_VI, upper_rp_VI, color='grey', alpha=0.08, zorder=0)
+        ax_res.axvspan(lower_rp_VII, upper_rp_VII, color='grey', alpha=0.08, zorder=0)
+
+        ax_main.axhline(0, color='k', ls=':')
+        ax_main.set_xscale('log')
+        ax_main.set_xlim(1, 600)
+        ax_main.set_ylabel(r'$r_p w_{\mathrm{V}+}\,[\mathrm{Mpc}^2/h^2]$')
+        ax_main.legend(frameon=False)
+
+        ax_res.axhline(0, color='k', ls=':')
+        ax_res.set_xscale('log')
+        ax_res.set_ylim(-200, 200)
+        ax_res.set_xlabel(r'$r_p$ [Mpc/h]')
+        ax_res.set_ylabel(r'$(\mathrm{Data}-\mathrm{Model})/\mathrm{Data}$ [%]')
+
+        plt.tight_layout()
+        plt.savefig(f'/disks/shear16/herle/code/plots/'
+            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical.png'
+        )
+
+        map_idx = np.argmax(logl)
+
+        print("=" * 50)
+
+        for param_idx, name in enumerate(names):
+            # Marginalised mode + 68% CI from KDE of marginal
+            d = getdist.get1DDensity(name)
+            xyind = np.where(d.P == np.amax(d.P))
+            marginal_mode = d.x[xyind[0]][0]
+            errors_density = d.getLimits(0.68)
+            lower_error = errors_density[0]
+            upper_error = errors_density[1]
+
+            # Joint MAP value for this parameter
+            joint_map_val = samples[map_idx, param_idx]
+
+            print(f"\n{name}:")
+            print(f"  Marginalised mode: {marginal_mode:.4f}  "
+                f"+{upper_error - marginal_mode:.4f} / -{marginal_mode - lower_error:.4f}")
+            print(f"  Joint MAP value:   {joint_map_val:.4f}  (see 2D contour for joint uncertainty)")
+
+        g = plots.get_subplot_plotter()
+        g.settings.fig_width_inch = 12
+        g.settings.legend_fontsize = 25
+        g.settings.fontsize = 25
+        g.settings.axes_labelsize = 30
+        g.settings.axes_fontsize = 25
+
+
+        g.triangle_plot(
+            [getdist],
+            ['A1_v', 'b_v'],
+            filled=[True],
+            marker_args={'lw':1.5},
+            contour_colors=['k'],
+            legend_kwargs={'frameon': False, 'ncol': 2}
+            )
+
+
+        plt.savefig(f'/disks/shear16/herle/code/plots/'
+            f'check_contours_{modes[i]}_{bin_label}_seperate_env_dep_analytical.png'
+        )
+        plt.close()
+
+fig, ax = plt.subplots(figsize=(8, 5))
+for mode in modes:
+    ax.plot(
+        chi2_results[mode]['bin_label'],
+        chi2_results[mode]['chi2_red'],
+        marker='o', linewidth=2, label=mode
+    )
+ax.axhline(1, ls='--', lw=1, color='k')
+ax.set_xlabel(r'$R_v$ bin')
+ax.set_ylabel(r'$\chi^2_{\rm red}$')
+ax.legend(frameon=False)
+plt.tight_layout()
+plt.savefig('/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical.png', dpi=300, bbox_inches='tight')
+plt.close()

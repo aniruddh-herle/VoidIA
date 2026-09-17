@@ -73,22 +73,30 @@ def smooth(delta_v, window_length=1001, polyorder=3):
 
     return interp_back(logk)
 
+# galaxy profiles
+
 # modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
 # mean_densities = [1.383265e-02, 1.383626e-02, 1.420568e-02, 1.438745e-02, 1.495675e-02, 1.225041e-02]
 
-modes = ['FIDUCIAL']
-mean_densities = [1.383265e-02]
-
-
 # modes = ['FIDUCIAL_2p8']
 # mean_densities = [2.014269e-02]
+
+# dm profiles
+
+# modes = ['WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
+# mean_densities = [1.846624e-01, 1.846601e-01, 1.846617e-01, 1.846623e-01, 1.846617e-01]
+
+
+modes = ['FIDUCIAL', 'FIDUCIAL_2p8']
+mean_densities = [1.846635e-01, 1.846582e-01]
 
 
 for i in range(len(modes)):
 
     print(modes[i])
 
-    profile_dir = f"/disks/shear16/herle/void_profiles/zobov_hydro4/{modes[i]}/"
+    # profile_dir = f"/disks/shear16/herle/void_profiles/zobov_hydro4/{modes[i]}/"
+    profile_dir = f"/disks/shear16/herle/void_profiles/zobov_hydro_particles/{modes[i]}/"
     mean_density = mean_densities[i]
 
     print("Mean density (Mpc^-3/h^3): ", mean_density)
@@ -188,6 +196,19 @@ for i in range(len(modes)):
     print(f"Rv 20 < Rv < 30: {Rv_med_2:.2f}")
     print(f"Rv 30 < Rv < 50: {Rv_med_3:.2f}")
 
+    # NEW: mean void radius per bin
+    Rv_mean_0 = np.mean(Rv_bin_0)
+    Rv_mean_1 = np.mean(Rv_bin_1)
+    Rv_mean_2 = np.mean(Rv_bin_2)
+    Rv_mean_3 = np.mean(Rv_bin_3)
+
+    print("Mean Rv in each bin:")
+    print(f"Rv 0 < Rv < 10:  {Rv_mean_0:.2f}")
+    print(f"Rv 10 < Rv < 20: {Rv_mean_1:.2f}")
+    print(f"Rv 20 < Rv < 30: {Rv_mean_2:.2f}")
+    print(f"Rv 30 < Rv < 50: {Rv_mean_3:.2f}")
+    
+
 
     # =====================================================
     # Plot
@@ -229,7 +250,7 @@ for i in range(len(modes)):
 
 
     plt.tight_layout()
-    plt.savefig(f"/disks/shear16/herle/code/plots/void_delta_profiles_zobov_{modes[i]}.png")
+    plt.savefig(f"/disks/shear16/herle/code/plots/void_delta_profiles_zobov_{modes[i]}_particles.png")
 
     # =====================================================
     # Fourier transform of profiles (all bins, one plot)
@@ -262,10 +283,10 @@ for i in range(len(modes)):
     k = k_native * h
     #k = k_native
 
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin0.npy", delta_k_0)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin1.npy", delta_k_1)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin2.npy", delta_k_2)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin3.npy", delta_k_3)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin0_particles.npy", delta_k_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin1_particles.npy", delta_k_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin2_particles.npy", delta_k_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin3_particles.npy", delta_k_3)
 
     # plot all together
     plt.figure(figsize=(5,5))
@@ -289,7 +310,7 @@ for i in range(len(modes)):
 
 
     plt.tight_layout()
-    plt.savefig(f"/disks/shear16/herle/code/plots/zobov_{modes[i]}_void_delta_k_profiles.png")
+    plt.savefig(f"/disks/shear16/herle/code/plots/zobov_{modes[i]}_void_delta_k_profiles_particles.png")
 
     
 
@@ -313,14 +334,14 @@ for i in range(len(modes)):
     # -----------------------------
     # save arrays
     # -----------------------------
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_raw.npy", delta_k_0)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_smooth.npy", smooth_delta_0)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_raw.npy", delta_k_1)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_smooth.npy", smooth_delta_1)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_raw.npy", delta_k_2)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_smooth.npy", smooth_delta_2)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_raw.npy", delta_k_3)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_smooth.npy", smooth_delta_3)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_raw_particles.npy", delta_k_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_smooth_particles.npy", smooth_delta_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_raw_particles.npy", delta_k_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_smooth_particles.npy", smooth_delta_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_raw_particles.npy", delta_k_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_smooth_particles.npy", smooth_delta_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_raw_particles.npy", delta_k_3)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_smooth_particles.npy", smooth_delta_3)
 
 
     # =====================================================
@@ -354,4 +375,4 @@ for i in range(len(modes)):
     plt.legend(frameon=False)
     plt.tight_layout()
 
-    plt.savefig(f"/disks/shear16/herle/code/plots/zobov_{modes[i]}_void_delta_bins_smoothed.png")
+    plt.savefig(f"/disks/shear16/herle/code/plots/zobov_{modes[i]}_void_delta_bins_smoothed_particles.png")

@@ -156,18 +156,41 @@ lower_rp_VII = 4.0*Rv
 upper_rp_VII = 500.0
 
 
+from getdist import plots, MCSamples
+
+def compute_chi2(logl, samples, corr):
+    logL_max = np.max(logl)
+    chi2_eff = -2 * logL_max
+    Ndata = len(corr)
+    Nparams_flat = samples.shape[1]
+    Ndof = Ndata - Nparams_flat
+    chi2_red = chi2_eff / Ndof
+    return chi2_eff, chi2_red
+
+
+def read_nautilus_samples(npz_filename):
+    data = np.load(npz_filename)
+    samples = data['samples']        # shape (Nsamples, Nparams)
+    weights = data['weights']        # shape (Nsamples,)
+    logl = data['logl']              # shape (Nsamples,)
+    return samples, weights, logl
+
+
+names = ['A1_v', 'b_v']
+labels = ['A1_v', 'b_v']
+
 for i in range(len(modes)):
 
     print("-----------------------------")
     print(modes[i])
     print("-----------------------------")
 
-    delta_v = np.load(f'/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_raw.npy')
+    delta_v = np.load(f'/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_raw.npy')
 
     # Reconstruct the k-grid delta_v was actually saved on
     # (must match the void script exactly: log10kmin=-5, log10kmax=2, N=1000001, then *h)
     
-    k_void = k_native * h                     # Mpc^-1, matches delta_v's saved values
+    k_void = k_native                     # Mpc^-1, matches delta_v's saved values
 
     assert delta_v.shape[0] == k_void.shape[0], \
         f"delta_v has {delta_v.shape[0]} points but k_void has {k_void.shape[0]}"
@@ -229,13 +252,14 @@ for i in range(len(modes)):
 
     wVII = w_2v.copy()
     wVII *= scaling
-    wVII *=h
+    #wVII *=h
 
     wVI = w_1v.copy()
     wVI *= scaling
-    wVI *= h
+    #wVI *= h
 
-    model_rp = rp_array * h
+    # model_rp = rp_array * h
+    model_rp = rp_array
 
     model_mask_VI = (model_rp >= lower_rp_VI) & (model_rp <= upper_rp_VI)
     model_mask_VII = (model_rp >= lower_rp_VII) & (model_rp <= upper_rp_VII)
@@ -527,5 +551,172 @@ for i in range(len(modes)):
         print(f"Saved results to {output_file}")
 
 
-    if __name__ == '__main__':
-        run()
+    # if __name__ == '__main__':
+    #     run()
+
+
+
+
+    filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv10_20Mpc_pimax100_0.0_JK125_bgtest.npz'
+    samples, weights, logl = read_nautilus_samples(filename)
+    getdist = MCSamples(samples=samples, 
+                                weights=weights,
+                                names=names, 
+                                labels=labels, 
+                                ignore_rows=0)
+
+    chi2_eff, chi2_red = compute_chi2(logl, samples, corr)    
+    print(f"[{modes[i]}] Reduced Chi2: ", chi2_red)
+
+
+    # Read A1_v
+    d = getdist.get1DDensity('A1_v')
+    xyind = np.where(d.P == np.amax(d.P))
+    A1v = d.x[xyind[0]][0]
+    errors_density = d.getLimits(0.68)
+    A1v_error = (errors_density[1] - errors_density[0]) / 2.0
+
+    # Read b_v (not A2_v)
+    d = getdist.get1DDensity('b_v')
+    xyind = np.where(d.P == np.amax(d.P))
+    bv = d.x[xyind[0]][0]
+    errors_density = d.getLimits(0.68)
+    bv_error = (errors_density[1] - errors_density[0]) / 2.0
+
+    A1_best = A1v
+    bv_best = bv
+
+    wVI_bestfit  = wVI  * A1_best * 1.530   # matches model_wVI hardcoded bg
+    wVII_bestfit = wVII * A1_best * bv_best  # matches model_wVII
+
+    # Posterior draws
+    Nsamp = 500
+    weights_norm = weights / np.sum(weights)
+    inds = np.random.choice(len(samples), size=Nsamp, p=weights_norm)
+    posterior_draws = samples[inds]
+
+    A1_draws = posterior_draws[:, 0]
+    bv_draws = posterior_draws[:, 1]
+
+    wVI_ens  = []
+    wVII_ens = []
+
+    for A1, bv_d in zip(A1_draws, bv_draws):
+        wVI_ens.append(wVI * A1 * 1.530)
+        wVII_ens.append(wVII * A1 * bv_d)
+
+    wVI_ens  = np.array(wVI_ens)
+    wVII_ens = np.array(wVII_ens)
+
+    p16_VI, p50_VI, p84_VI    = np.percentile(wVI_ens, [16, 50, 84], axis=0)
+    p16_VII, p50_VII, p84_VII = np.percentile(wVII_ens, [16, 50, 84], axis=0)
+
+    # -------------------------------------------------
+    # Data at the cut used in the fit (VI ∪ VII region)
+    # -------------------------------------------------
+    err_cut = np.sqrt(np.diag(cov_arr))
+
+    # split the cut points back into their VI/VII sub-masks, for interpolation below
+    mask_data_VI  = mask_VI[mask_total]
+    mask_data_VII = mask_VII[mask_total]
+
+    color = 'k'
+    label = modes[i]
+
+    # -------------------------------------------------
+    # Main panel
+    # -------------------------------------------------
+    fig, (ax_main, ax_res) = plt.subplots(
+        2, 1,
+        figsize=(14, 14),
+        sharex=True,
+        gridspec_kw={"height_ratios": [3, 1], "hspace": 0.05}
+    )
+
+    ax_main.plot(
+        model_rp[model_mask_VII],
+        model_rp[model_mask_VII] * wVII_bestfit[model_mask_VII],
+        color=color
+    )
+    ax_main.plot(
+        model_rp[model_mask_VI],
+        model_rp[model_mask_VI] * wVI_bestfit[model_mask_VI],
+        color=color
+    )
+
+    ax_main.errorbar(
+        rp_cut,
+        rp_cut * corr,
+        yerr=rp_cut * err_cut,
+        fmt='o',
+        capsize=3,
+        color=color,
+        label=label
+    )
+
+    ax_main.fill_between(
+        model_rp[model_mask_VI],
+        model_rp[model_mask_VI] * p16_VI[model_mask_VI],
+        model_rp[model_mask_VI] * p84_VI[model_mask_VI],
+        alpha=0.25,
+        color=color
+    )
+
+    ax_main.fill_between(
+        model_rp[model_mask_VII],
+        model_rp[model_mask_VII] * p16_VII[model_mask_VII],
+        model_rp[model_mask_VII] * p84_VII[model_mask_VII],
+        alpha=0.25,
+        color=color
+    )
+
+    # -------------------------------------------------
+    # Residuals
+    # -------------------------------------------------
+    model_at_data = np.full_like(rp_cut, np.nan)
+
+    model_at_data[mask_data_VI] = np.interp(
+        rp_cut[mask_data_VI],
+        model_rp[model_mask_VI],
+        wVI_bestfit[model_mask_VI]
+    )
+
+    model_at_data[mask_data_VII] = np.interp(
+        rp_cut[mask_data_VII],
+        model_rp[model_mask_VII],
+        wVII_bestfit[model_mask_VII]
+    )
+
+    residual = 100.0 * (corr - model_at_data) / corr
+    frac_err = 100.0 * err_cut / np.abs(corr)
+
+    ax_res.errorbar(
+        rp_cut,
+        residual,
+        yerr=frac_err,
+        fmt='o',
+        capsize=3,
+        color=color
+    )
+
+    # shaded 1-void/2-void regions
+    ax_main.axvspan(lower_rp_VI, upper_rp_VI, color='grey', alpha=0.08, zorder=0)
+    ax_main.axvspan(lower_rp_VII, upper_rp_VII, color='grey', alpha=0.08, zorder=0)
+
+    ax_res.axvspan(lower_rp_VI, upper_rp_VI, color='grey', alpha=0.08, zorder=0)
+    ax_res.axvspan(lower_rp_VII, upper_rp_VII, color='grey', alpha=0.08, zorder=0)
+
+    ax_main.axhline(0, color='k', ls=':')
+    ax_main.set_xscale('log')
+    ax_main.set_xlim(1, 600)
+    ax_main.set_ylabel(r'$r_p w_{\mathrm{V}+}\,[\mathrm{Mpc}^2/h^2]$')
+    ax_main.legend(frameon=False)
+
+    ax_res.axhline(0, color='k', ls=':')
+    ax_res.set_xscale('log')
+    ax_res.set_ylim(-200, 200)
+    ax_res.set_xlabel(r'$r_p$ [Mpc/h]')
+    ax_res.set_ylabel(r'$(\mathrm{Data}-\mathrm{Model})/\mathrm{Data}$ [%]')
+
+    plt.tight_layout()
+    plt.savefig('/disks/shear16/herle/code/plots/check_fits.png')

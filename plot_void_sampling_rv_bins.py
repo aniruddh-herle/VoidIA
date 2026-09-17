@@ -74,8 +74,7 @@ FLAMINGO_labels = [
 r_bins = [
     (0,10),
     (10,20),
-    (20,30),
-    (30,50)
+    (20,30)
 ]
 
 
@@ -130,6 +129,13 @@ Rv_median = {
     }
 }
 
+bin_labels = {
+    (0, 10):  '0_10',
+    (10, 20): '10_20',
+    (20, 30): '20_30',
+    (30, 50): '30_50',   # add if you have this bin, else remove from r_bins
+}
+
 
 # =====================================================
 # Storage for Av,bv evolution
@@ -181,9 +187,8 @@ for Rmin, Rmax in r_bins:
 
         filename = (
             '/disks/shear16/herle/models/models/'
-            f'nautilus_chain_revolver_{mode}_voids_1000_'
-            f'Rv{Rmin}_{Rmax}hMpc_pimax100_0.0_'
-            f'JK_flamingo_ps.npz'
+            f'nautilus_chain_revolver_{mode}_voids_1000'
+            f'_Rv{bin_labels[(Rmin,Rmax)]}Mpc_seperate_env_dep_analytical.npz'
         )
 
 
@@ -423,14 +428,14 @@ axes[1].axhline(
 axes[0].legend(
     fontsize=16,
     frameon=False,
-    loc='lower left'
+    loc='upper right'
 )
 
-axes[1].legend(
-    fontsize=16,
-    frameon=False,
-    loc='lower left'
-)
+# axes[1].legend(
+#     fontsize=16,
+#     frameon=False,
+#     loc='upper right'
+# )
 
 
 

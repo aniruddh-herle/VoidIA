@@ -76,7 +76,7 @@ ranges = {
 names = ['A1_v', 'b_v']  
 labels = ['A1_v', 'b_v']
 
-filename = '/disks/shear16/herle/models/models/nautilus_chain_revolver_FIDUCIAL_voids_1000_Rv10_20Mpc_pimax100_0.0_JK125_bgtest.npz'
+filename = '/disks/shear16/herle/models/models/nautilus_chain_revolver_FIDUCIAL_voids_1000_Rv10_20Mpc_pimax100_0.0_particles.npz'
 samples, weights, logl = read_nautilus_samples(filename)
 getdist = MCSamples(samples=samples, 
                             weights=weights,
@@ -117,5 +117,5 @@ g.triangle_plot(
     )
 
 
-plt.savefig('/disks/shear16/herle/code/plots/check_contours_bgtest.png')
+plt.savefig('/disks/shear16/herle/code/plots/check_contours_particles.png')
 plt.close()
