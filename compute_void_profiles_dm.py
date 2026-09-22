@@ -150,6 +150,13 @@ box_size = 2800 * h
 # -------------------------------
 hydro_modes = {
 
+    "FIDUCIAL": (
+        "zobov-Flamingo_outputFIDUCIAL_cat.txt",
+        "L1000N1800_HYDRO_FIDUCIAL_77.npy",
+        r"L1$_{\rm m9}$",
+        "#117733"
+    ),
+
     "FIDUCIAL_2p8": (
         "zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt",
         "L2800N5040_HYDRO_FIDUCIAL_78.npy",
@@ -356,72 +363,6 @@ def compute_void_profiles(
     return np.array(profiles_phys), np.array(profiles_scaled)
 
 
-save_base_dir = "/disks/shear16/herle/void_profiles/zobov_hydro_particles/"
-
-all_profiles_phys = {}
-all_profiles_scaled = {}
-colors = {}
-mean_densities = {}
-labels = {}
-
-# -------------------------------
-# Compute profiles for all hydro runs
-
-for mode, (void_file, particle_file, label, color) in hydro_modes.items():
-
-    print(f"Processing {label}")
-
-    # -------------------------------
-    # Read void catalogue
-    # -------------------------------
-    zobov_voids = np.loadtxt(
-        f"/disks/shear16/herle/voids/{void_file}"
-    )
-
-    # zobov_voids = zobov_voids[
-    #     (zobov_voids[:,4] >= 10) &
-    #     (zobov_voids[:,4] <= 12)
-    # ]
-
-
-    # -------------------------------
-    # Read galaxy catalogue
-    # -------------------------------
-    particle_data = (
-    "/disks/shear16/herle/particle_data/"+ particle_file)
-
-    pos_dm = np.load(particle_data)
-
-    pos_dm *= h
-
-    px, py, pz = pos_dm[:, 0], pos_dm[:, 1], pos_dm[:, 2]
-
-    particle_positions = np.column_stack((px, py, pz))
-    print("Number of particles: ", len(particle_positions))
-
-    # print min and max of galaxy positions
-    print(f"Particle positions: x = [{px.min():.2f}, {px.max():.2f}] Mpc/h")
-    print(f"Particle positions: y = [{py.min():.2f}, {py.max():.2f}] Mpc/h")
-    print(f"Particle positions: z = [{pz.min():.2f}, {pz.max():.2f}] Mpc/h")
-    volume = box_size**3
-    mean_densities[label] = len(particle_positions) / volume
-
-    print(f"Mean density for {label}: {mean_densities[label]:.6e} Mpc^-3/h^3")
-
-    save_dir = os.path.join(save_base_dir, mode)
-
-    phys, scaled = compute_void_profiles(
-        zobov_voids[:,1:4],
-        zobov_voids[:,4],
-        particle_positions,
-        save_dir,
-    )
-
-    all_profiles_phys[mode] = phys
-    all_profiles_scaled[mode] = scaled
-    colors[mode] = color
-    labels[mode] = label
-
 # save_base_dir = "/disks/shear16/herle/void_profiles/zobov_hydro_particles/"
 
 # all_profiles_phys = {}
@@ -430,63 +371,129 @@ for mode, (void_file, particle_file, label, color) in hydro_modes.items():
 # mean_densities = {}
 # labels = {}
 
+# # -------------------------------
+# # Compute profiles for all hydro runs
+
 # for mode, (void_file, particle_file, label, color) in hydro_modes.items():
 
-#     print(f"Loading {label}")
+#     print(f"Processing {label}")
 
-#     # ------------------------------------------------
-#     # Load previously computed profiles
-#     # ------------------------------------------------
+#     # -------------------------------
+#     # Read void catalogue
+#     # -------------------------------
+#     zobov_voids = np.loadtxt(
+#         f"/disks/shear16/herle/voids/{void_file}"
+#     )
+
+#     # zobov_voids = zobov_voids[
+#     #     (zobov_voids[:,4] >= 10) &
+#     #     (zobov_voids[:,4] <= 12)
+#     # ]
+
+
+#     # -------------------------------
+#     # Read galaxy catalogue
+#     # -------------------------------
+#     particle_data = (
+#     "/disks/shear16/herle/particle_data/"+ particle_file)
+
+#     pos_dm = np.load(particle_data)
+
+#     pos_dm *= h
+
+#     px, py, pz = pos_dm[:, 0], pos_dm[:, 1], pos_dm[:, 2]
+
+#     particle_positions = np.column_stack((px, py, pz))
+#     print("Number of particles: ", len(particle_positions))
+
+#     # print min and max of galaxy positions
+#     print(f"Particle positions: x = [{px.min():.2f}, {px.max():.2f}] Mpc/h")
+#     print(f"Particle positions: y = [{py.min():.2f}, {py.max():.2f}] Mpc/h")
+#     print(f"Particle positions: z = [{pz.min():.2f}, {pz.max():.2f}] Mpc/h")
+#     volume = box_size**3
+#     mean_densities[label] = len(particle_positions) / volume
+
+#     print(f"Mean density for {label}: {mean_densities[label]:.6e} Mpc^-3/h^3")
 
 #     save_dir = os.path.join(save_base_dir, mode)
 
-#     profile_files = [
-#         os.path.join(save_dir, f)
-#         for f in os.listdir(save_dir)
-#         if f.endswith(".npz")
-#     ]
-
-#     print(f"Found {len(profile_files)} profile files")
-
-#     profiles_phys = []
-#     profiles_scaled = []
-
-#     for fname in profile_files:
-#         d = np.load(fname)
-
-#         profiles_phys.append(d["density_phys"])
-#         profiles_scaled.append(d["density_scaled"])
-
-#     all_profiles_phys[mode] = np.array(profiles_phys)
-#     all_profiles_scaled[mode] = np.array(profiles_scaled)
-
-#     # ------------------------------------------------
-#     # Load particles only to calculate mean density
-#     # ------------------------------------------------
-
-#     particle_data = (
-#         "/disks/shear16/herle/particle_data/" + particle_file
+#     phys, scaled = compute_void_profiles(
+#         zobov_voids[:,1:4],
+#         zobov_voids[:,4],
+#         particle_positions,
+#         save_dir,
 #     )
 
-#     pos_dm = np.load(particle_data)
-#     pos_dm *= h
-
-#     particle_positions = pos_dm
-
-#     print("Number of particles:", len(particle_positions))
-
-#     volume = box_size**3
-
-#     # If particles are downsampled by factor 100:
-#     mean_densities[label] = len(particle_positions) / volume
-
-#     print(
-#         f"Mean density for {label}: "
-#         f"{mean_densities[label]:.6e} Mpc^-3 h^3"
-#     )
-
+#     all_profiles_phys[mode] = phys
+#     all_profiles_scaled[mode] = scaled
 #     colors[mode] = color
 #     labels[mode] = label
+
+save_base_dir = "/disks/shear16/herle/void_profiles/zobov_hydro_particles/"
+
+all_profiles_phys = {}
+all_profiles_scaled = {}
+colors = {}
+mean_densities = {}
+labels = {}
+
+for mode, (void_file, particle_file, label, color) in hydro_modes.items():
+
+    print(f"Loading {label}")
+
+    # ------------------------------------------------
+    # Load previously computed profiles
+    # ------------------------------------------------
+
+    save_dir = os.path.join(save_base_dir, mode)
+
+    profile_files = [
+        os.path.join(save_dir, f)
+        for f in os.listdir(save_dir)
+        if f.endswith(".npz")
+    ]
+
+    print(f"Found {len(profile_files)} profile files")
+
+    profiles_phys = []
+    profiles_scaled = []
+
+    for fname in profile_files:
+        d = np.load(fname)
+
+        profiles_phys.append(d["density_phys"])
+        profiles_scaled.append(d["density_scaled"])
+
+    all_profiles_phys[mode] = np.array(profiles_phys)
+    all_profiles_scaled[mode] = np.array(profiles_scaled)
+
+    # ------------------------------------------------
+    # Load particles only to calculate mean density
+    # ------------------------------------------------
+
+    particle_data = (
+        "/disks/shear16/herle/particle_data/" + particle_file
+    )
+
+    pos_dm = np.load(particle_data)
+    pos_dm *= h
+
+    particle_positions = pos_dm
+
+    print("Number of particles:", len(particle_positions))
+
+    volume = box_size**3
+
+    # If particles are downsampled by factor 100:
+    mean_densities[label] = len(particle_positions) / volume
+
+    print(
+        f"Mean density for {label}: "
+        f"{mean_densities[label]:.6e} Mpc^-3 h^3"
+    )
+
+    colors[mode] = color
+    labels[mode] = label
 
 # -------------------------------
 # Plot stacked median + percentiles

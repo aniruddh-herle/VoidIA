@@ -49,7 +49,8 @@ modes = [
     'STRONG_AGN',
     'STRONGER_AGN',
     'STRONGEST_AGN',
-    'STRONG_SUPERNOVA'
+    'STRONG_SUPERNOVA',
+    'FIDUCIAL_2p8'
 ]
 
 
@@ -59,7 +60,8 @@ FLAMINGO_colors = [
     '#6AAED6',
     '#3787C0',
     '#105BA4',
-    '#FF8C40'
+    '#FF8C40',
+    '#332288'
 ]
 
 FLAMINGO_labels = [
@@ -68,64 +70,131 @@ FLAMINGO_labels = [
     r"fgas$-2\sigma$",
     r"fgas$-4\sigma$",
     r"fgas$-8\sigma$",
-    r"M_*$-\sigma$"
+    r"M_*$-\sigma$",
+    r"L2p8$_m9$"
 ]
 
 r_bins = [
     (0,10),
     (10,20),
-    (20,30)
+    (20,30),
+    (30,50)
 ]
 
+# Rv_median = {
 
-Rv_median = {
+#     'FIDUCIAL':
+#     {
+#         (0,10): 8.46,
+#         (10,20): 14.72,
+#         (20,30): 23.17,
+#         (30,50): 32.50
+#     },
+
+#     'WEAK_AGN':
+#     {
+#         (0,10): 8.49,
+#         (10,20): 14.65,
+#         (20,30): 23.10,
+#         (30,50): 32.15
+#     },
+
+#     'STRONG_AGN':
+#     {
+#         (0,10): 8.41,
+#         (10,20): 14.70,
+#         (20,30): 22.94,
+#         (30,50): 32.04
+#     },
+
+#     'STRONGER_AGN':
+#     {
+#         (0,10): 8.44,
+#         (10,20): 14.58,
+#         (20,30): 23.10,
+#         (30,50): 31.98
+#     },
+
+#     'STRONGEST_AGN':
+#     {
+#         (0,10): 8.37,
+#         (10,20): 14.62,
+#         (20,30): 22.94,
+#         (30,50): 31.90
+#     },
+
+#     'STRONG_SUPERNOVA':
+#     {
+#         (0,10): 8.59,
+#         (10,20): 14.83,
+#         (20,30): 23.19,
+#         (30,50): 32.29
+#     },
+#     'FIDUCIAL_2p8':
+#     {   
+#         (0,10): 8.28,
+#         (10,20): 14.37,
+#         (20,30): 22.82,
+#         (30,50): 31.92
+#     }
+# }
+
+Rv_mean = {
 
     'FIDUCIAL':
     {
-        (0,10): 8.46,
-        (10,20): 14.72,
-        (20,30): 23.17,
-        (30,50): 32.50
+        (0,10): 8.23,
+        (10,20): 14.82,
+        (20,30): 23.65,
+        (30,50): 33.17
     },
 
     'WEAK_AGN':
     {
-        (0,10): 8.49,
-        (10,20): 14.65,
-        (20,30): 23.10,
-        (30,50): 32.15
+        (0,10): 8.27,
+        (10,20): 14.74,
+        (20,30): 23.59,
+        (30,50): 32.96
     },
 
     'STRONG_AGN':
     {
-        (0,10): 8.41,
-        (10,20): 14.70,
-        (20,30): 22.94,
-        (30,50): 32.04
+        (0,10): 8.18,
+        (10,20): 14.78,
+        (20,30): 23.47,
+        (30,50): 32.91
     },
 
     'STRONGER_AGN':
     {
-        (0,10): 8.44,
-        (10,20): 14.58,
-        (20,30): 23.10,
-        (30,50): 31.98
+        (0,10): 8.25,
+        (10,20): 14.70,
+        (20,30): 23.59,
+        (30,50): 32.98
     },
 
     'STRONGEST_AGN':
     {
-        (0,10): 8.37,
-        (10,20): 14.62,
-        (20,30): 22.94,
-        (30,50): 31.90
+        (0,10): 8.15,
+        (10,20): 14.73,
+        (20,30): 23.48,
+        (30,50): 32.73
     },
 
     'STRONG_SUPERNOVA':
     {
-        (0,10): 8.59,
-        (10,20): 14.83,
-        (20,30): 23.19,
-        (30,50): 32.29
+        (0,10): 8.36,
+        (10,20): 14.88,
+        (20,30): 23.71,
+        (30,50): 33.10
+    },
+
+    'FIDUCIAL_2p8':
+    {
+        (0,10): 8.04,
+        (10,20): 14.55,
+        (20,30): 23.37,
+        (30,50): 32.56
     }
 }
 
@@ -183,14 +252,18 @@ for Rmin, Rmax in r_bins:
 
     for i, mode in enumerate(modes):
 
+        # Only FIDUCIAL_2p8 has the 30-50 bin
+        if (Rmin, Rmax) == (30, 50) and mode != 'FIDUCIAL_2p8':
+            continue
 
+        # Box size for each feedback model
+        box_size = 2800 if mode == 'FIDUCIAL_2p8' else 1000
 
         filename = (
             '/disks/shear16/herle/models/models/'
-            f'nautilus_chain_revolver_{mode}_voids_1000'
+            f'nautilus_chain_revolver_{mode}_voids_{box_size}'
             f'_Rv{bin_labels[(Rmin,Rmax)]}Mpc_seperate_env_dep_analytical.npz'
         )
-
 
         print(filename)
 
@@ -248,8 +321,8 @@ for Rmin, Rmax in r_bins:
         # Store vs Rv
         # ------------------------------------------
 
-        Rv = Rv_median[mode][(Rmin,Rmax)]
-
+        #Rv = Rv_median[mode][(Rmin,Rmax)]
+        Rv = Rv_mean[mode][(Rmin,Rmax)]
 
         parameter_results[mode]['Rv'].append(Rv)
 
@@ -409,7 +482,7 @@ axes[0].set_ylabel(r'$A_{v}$')
 axes[1].set_ylabel(r'$b_v$')
 
 axes[1].set_xlabel(
-    r'$R_{\rm v,median}\,[h^{-1}{\rm Mpc}]$'
+    r'$R_{\rm v,mean}\,[h^{-1}{\rm Mpc}]$'
 )
 
 

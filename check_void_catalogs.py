@@ -181,6 +181,6 @@ plt.close()
 print("\nAll plots saved.")
 
 
-voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt')
-print(voids[:10, 4])   # Rv of first 10 catalog entries
-print(voids[-10:, 4])  # Rv of last 10 catalog entries
+# voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt')
+# print(voids[:10, 4])   # Rv of first 10 catalog entries
+# print(voids[-10:, 4])  # Rv of last 10 catalog entries

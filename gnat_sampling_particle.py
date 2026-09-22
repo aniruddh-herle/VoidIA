@@ -17,7 +17,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-box_size', type=float, default=2800, help='Size of the box.')
-parser.add_argument('-n_cores', type=int, default=192, help='Number of CPU cores to use for multiprocessing.')
+parser.add_argument('-n_cores', type=int, default=128, help='Number of CPU cores to use for multiprocessing.')
 args = parser.parse_args()
 
 from scipy.signal import savgol_filter
@@ -171,19 +171,38 @@ def read_nautilus_samples(npz_filename):
 names = ['A1_v', 'b_v']
 labels = ['A1_v', 'b_v']
 
+# # Define void radius bins
+# void_bins = [(0, 10), (10, 20), (20, 30)]
+# Rv_median = {
+#     'FIDUCIAL':        [8.46, 14.72, 23.17],
+#     'WEAK_AGN':        [8.49, 14.65, 23.10],
+#     'STRONG_AGN':      [8.41, 14.70, 22.94],
+#     'STRONGER_AGN':    [8.44, 14.58, 23.10],
+#     'STRONGEST_AGN':   [8.37, 14.62, 22.94],
+#     'STRONG_SUPERNOVA':[8.59, 14.83, 23.19],
+#     'FIDUCIAL_2p8':    [8.28, 14.37, 22.82]
+# }
+
+# bin_labels = ['0_10', '10_20', '20_30']
+# delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+
 # Define void radius bins
-void_bins = [(0, 10), (10, 20), (20, 30)]
+# void_bins = [(0, 10), (10, 20), (20, 30), (30, 50)]
+# Rv_median = {
+#     'FIDUCIAL_2p8':    [8.28, 14.37, 22.82, 31.92]
+# }
+
+# bin_labels = ['0_10', '10_20', '20_30', '30_50']
+# delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3']
+
+void_bins = [(0, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
 Rv_median = {
-    'FIDUCIAL':        [8.46, 14.72, 23.17],
-    'WEAK_AGN':        [8.49, 14.65, 23.10],
-    'STRONG_AGN':      [8.41, 14.70, 22.94],
-    'STRONGER_AGN':    [8.44, 14.58, 23.10],
-    'STRONGEST_AGN':   [8.37, 14.62, 22.94],
-    'STRONG_SUPERNOVA':[8.59, 14.83, 23.19],
-    'FIDUCIAL_2p8':    [9.48, 18.47, 24.26]
+    'FIDUCIAL_2p8':    [8.28, 12.49, 17.17, 21.94, 26.76, 31.92]
 }
-bin_labels = ['0_10', '10_20', '20_30']
-delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+
+bin_labels = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
+delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
+
 
 chi2_results = {mode: {'bin_label': [], 'chi2_red': []} for mode in modes}
 
@@ -358,6 +377,7 @@ for i in range(len(modes)):
         # FULL jackknife covariance  (IDENTICAL formula)
         # -------------------------------------------------
         NPatches = wvp_JK_cut.shape[0]
+        print('Npatches: ', NPatches)
 
         cov_mat = ((NPatches - 1) / NPatches) * np.sum(
             np.einsum('ij,ik->ijk', wvp_diff, wvp_diff),
@@ -488,8 +508,8 @@ for i in range(len(modes)):
             print(f"Saved results to {output_file}")
 
 
-        if __name__ == '__main__':
-            run()
+        # if __name__ == '__main__':
+        #     run()
 
 
         filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv{bin_label}Mpc_seperate_env_dep_analytical.npz'

@@ -19,9 +19,6 @@ elif 'L1000' in run:
 else:
     raise ValueError("Unknown catalog. Please set box_size manually.")
 
-Rmin, Rmax = 20, 30
-
-print("Rmin, Rmax = ", (Rmin, Rmax))
 
 h=0.681
 # modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA', 'JETS_published', 'STRONG_JETS_published']
@@ -29,117 +26,128 @@ h=0.681
 # modes = ['WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
 modes = ['FIDUCIAL']
 
-for mode in modes:
-    print(f"Processing {mode}")
+r_bins = [
+#    (0, 10),
+    (10, 15),
+    (15, 20),
+    (20, 25),
+    (25, 30)
+#    (30, 50)
+]
 
-    # --- Load data ---
-    data_file = f'{path}{run}_HYDRO_{mode}_{redshift}_19aug.h5'
-    data_shapes = pd.read_hdf(data_file)
+for Rmin, Rmax in r_bins:
+    print("Rmin, Rmax = ", (Rmin, Rmax))
 
-    # --- Shape calculations ---
-    data_shapes['q'] = data_shapes['b_stellar_it_2d'] / data_shapes['a_stellar_it_2d']
-    data_shapes = data_shapes[data_shapes['N_stellar'] > 300]
+    for mode in modes:
+        print(f"Processing {mode}")
+        # --- Load data ---
+        data_file = f'{path}{run}_HYDRO_{mode}_{redshift}_19aug.h5'
+        data_shapes = pd.read_hdf(data_file)
 
-    data_shapes['e'] = (1 - data_shapes.q) / (1 + data_shapes.q)
-    theta = np.arctan2(data_shapes.e1y_stellar_it_2d, data_shapes.e1x_stellar_it_2d)
-    data_shapes['e1'] = -data_shapes.e * np.cos(2 * theta)
-    data_shapes['e2'] = -data_shapes.e * np.sin(2 * theta)
+        # --- Shape calculations ---
+        data_shapes['q'] = data_shapes['b_stellar_it_2d'] / data_shapes['a_stellar_it_2d']
+        data_shapes = data_shapes[data_shapes['N_stellar'] > 300]
 
-    a = 1.0/(1.0+float(redshift))
-    for coord in ['x', 'y', 'z']:
-        data_shapes[f'halo_centre_{coord}'] = (data_shapes[f'halo_centre_{coord}'] *h*(1/a)) / 1e3
+        data_shapes['e'] = (1 - data_shapes.q) / (1 + data_shapes.q)
+        theta = np.arctan2(data_shapes.e1y_stellar_it_2d, data_shapes.e1x_stellar_it_2d)
+        data_shapes['e1'] = -data_shapes.e * np.cos(2 * theta)
+        data_shapes['e2'] = -data_shapes.e * np.sin(2 * theta)
 
-    print("x range: ", data_shapes['halo_centre_x'].min(), data_shapes['halo_centre_x'].max())
-    print("y range: ", data_shapes['halo_centre_y'].min(), data_shapes['halo_centre_y'].max())
-    print("z range: ", data_shapes['halo_centre_z'].min(), data_shapes['halo_centre_z'].max())
+        a = 1.0/(1.0+float(redshift))
+        for coord in ['x', 'y', 'z']:
+            data_shapes[f'halo_centre_{coord}'] = (data_shapes[f'halo_centre_{coord}'] *h*(1/a)) / 1e3
 
-    print(len(data_shapes), "galaxies with N_stellar > 300")
-    data_shapes['weight'] = np.ones(len(data_shapes['halo_centre_x']))
+        print("x range: ", data_shapes['halo_centre_x'].min(), data_shapes['halo_centre_x'].max())
+        print("y range: ", data_shapes['halo_centre_y'].min(), data_shapes['halo_centre_y'].max())
+        print("z range: ", data_shapes['halo_centre_z'].min(), data_shapes['halo_centre_z'].max())
 
-    # voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_output' + mode + '_cat.txt')
-    voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt')
-    #h = 0.681
-    #voids[:, 1:4] /= h
-    print("Void x range: ", voids[:, 1].min(), voids[:, 1].max())
-    print("Void y range: ", voids[:, 2].min(), voids[:, 2].max())
-    print("Void z range: ", voids[:, 3].min(), voids[:, 3].max())
+        print(len(data_shapes), "galaxies with N_stellar > 300")
+        data_shapes['weight'] = np.ones(len(data_shapes['halo_centre_x']))
 
-    cols = ["ID", "x", "y", "z", "Rv"]  # extend if more columns exist
+        # voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_output' + mode + '_cat.txt')
+        voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt')
+        #h = 0.681
+        #voids[:, 1:4] /= h
+        print("Void x range: ", voids[:, 1].min(), voids[:, 1].max())
+        print("Void y range: ", voids[:, 2].min(), voids[:, 2].max())
+        print("Void z range: ", voids[:, 3].min(), voids[:, 3].max())
 
-    void_data = pd.DataFrame(voids[:, :5], columns=cols)
+        cols = ["ID", "x", "y", "z", "Rv"]  # extend if more columns exist
 
-    void_data = void_data[(void_data['Rv'] >= Rmin) & 
-                        (void_data['Rv'] < Rmax)]
+        void_data = pd.DataFrame(voids[:, :5], columns=cols)
 
-    print("Number of voids: ", len(void_data))
-    # rename coordinates
-    void_data = void_data.rename(columns={
-        'x': 'halo_centre_x',
-        'y': 'halo_centre_y',
-        'z': 'halo_centre_z'
-    })
+        void_data = void_data[(void_data['Rv'] >= Rmin) & 
+                            (void_data['Rv'] < Rmax)]
 
-    # build positions table
-    data_positions = void_data[['halo_centre_x', 'halo_centre_y', 'halo_centre_z']].copy()
-    data_positions['weight'] = 1.0
+        print("Number of voids: ", len(void_data))
+        # rename coordinates
+        void_data = void_data.rename(columns={
+            'x': 'halo_centre_x',
+            'y': 'halo_centre_y',
+            'z': 'halo_centre_z'
+        })
 
-    # --- Prepare for correlations ---
-    col_names_box = ['halo_centre_x','halo_centre_y','halo_centre_z', 'e1', 'e2']
-    col_names_box += ['weight']
+        # build positions table
+        data_positions = void_data[['halo_centre_x', 'halo_centre_y', 'halo_centre_z']].copy()
+        data_positions['weight'] = 1.0
 
-    random_mock_box_positions = make_randoms_box(data_positions['halo_centre_x'], data_positions['halo_centre_y'], data_positions['halo_centre_z'], len(data_positions)*10, col_names=col_names_box)
-    random_mock_box_shapes = make_randoms_box(data_shapes['halo_centre_x'], data_shapes['halo_centre_y'], data_shapes['halo_centre_z'], len(data_shapes)*10, col_names=col_names_box)
+        # --- Prepare for correlations ---
+        col_names_box = ['halo_centre_x','halo_centre_y','halo_centre_z', 'e1', 'e2']
+        col_names_box += ['weight']
 
-    # --- Correlation parameters ---
-    config = {
-        'col_names': col_names_box,
-        'nbins': 25,
-        'rmin': 1,
-        'rmax': 600,
-        'pi_max': 100,
-        'npi': 1,
-        'grid_resolution': 3,
-        'mubins': 10,
-        'NPatches': 125,
-        'ncores': 128,
-        'slop': 0.,
-        'box': True,
-        'box_size': box_size * h
-    }
+        random_mock_box_positions = make_randoms_box(data_positions['halo_centre_x'], data_positions['halo_centre_y'], data_positions['halo_centre_z'], len(data_positions)*10, col_names=col_names_box)
+        random_mock_box_shapes = make_randoms_box(data_shapes['halo_centre_x'], data_shapes['halo_centre_y'], data_shapes['halo_centre_z'], len(data_shapes)*10, col_names=col_names_box)
 
-    # --- Compute correlations ---
-    corr_voids = compute_2p_corr(data_positions, data_shapes, random_mock_box_positions, random_mock_box_shapes, config)
-    
-    corr_voids.compute_wgp()
-    corr_voids.compute_xi3d_vv()
+        # --- Correlation parameters ---
+        config = {
+            'col_names': col_names_box,
+            'nbins': 25,
+            'rmin': 1,
+            'rmax': 600,
+            'pi_max': 100,
+            'npi': 1,
+            'grid_resolution': 3,
+            'mubins': 10,
+            'NPatches': 125,
+            'ncores': 192,
+            'slop': 0.,
+            'box': True,
+            'box_size': box_size * h
+        }
 
-    # --- Stack results and save ---
-    stacked_data = np.stack([
+        # --- Compute correlations ---
+        corr_voids = compute_2p_corr(data_positions, data_shapes, random_mock_box_positions, random_mock_box_shapes, config)
         
-        corr_voids.wgp.rp, corr_voids.wgp.xip,
-        corr_voids.wgp.std_from_cov,
-        
-        corr_voids.xi_vv.r, corr_voids.xi_vv.xi,
-        corr_voids.xi_vv.std_from_cov,
+        corr_voids.compute_wgp()
+        corr_voids.compute_xi3d_vv()
 
-    ], axis=1)
+        # --- Stack results and save ---
+        stacked_data = np.stack([
+            
+            corr_voids.wgp.rp, corr_voids.wgp.xip,
+            corr_voids.wgp.std_from_cov,
+            
+            corr_voids.xi_vv.r, corr_voids.xi_vv.xi,
+            corr_voids.xi_vv.std_from_cov,
 
-    df = pd.DataFrame(
-        stacked_data,
-        columns=[
-                'wvp_rp','wvp_xip',
-                'wvp_err',
-                
-                'xi_vv_r', 'xi_vv', 'xi_vv_err',
-                
-               ]
-    )
+        ], axis=1)
 
-    df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.h5',
-            key='a')
+        df = pd.DataFrame(
+            stacked_data,
+            columns=[
+                    'wvp_rp','wvp_xip',
+                    'wvp_err',
+                    
+                    'xi_vv_r', 'xi_vv', 'xi_vv_err',
+                    
+                ]
+        )
 
-    np.save(f'/disks/shear16/herle/correlations1/wvp_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.npy', corr_voids.wgp.cov_jk)
-    np.save(f'/disks/shear16/herle/correlations1/wvp_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.npy', corr_voids.wgp.xip_jk)
+        df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.h5',
+                key='a')
 
-    np.save(f'/disks/shear16/herle/correlations1/xi_vv_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.npy', corr_voids.xi_vv.cov_jk)
-    np.save(f'/disks/shear16/herle/correlations1/xi_vv_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.npy', corr_voids.xi_vv.xi_jk)
+        np.save(f'/disks/shear16/herle/correlations1/wvp_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.npy', corr_voids.wgp.cov_jk)
+        np.save(f'/disks/shear16/herle/correlations1/wvp_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.npy', corr_voids.wgp.xip_jk)
+
+        np.save(f'/disks/shear16/herle/correlations1/xi_vv_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.npy', corr_voids.xi_vv.cov_jk)
+        np.save(f'/disks/shear16/herle/correlations1/xi_vv_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical.npy', corr_voids.xi_vv.xi_jk)
