@@ -16,7 +16,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-box_size', type=float, default=2800, help='Size of the box.')
+parser.add_argument('-box_size', type=float, default=1000, help='Size of the box.')
 parser.add_argument('-n_cores', type=int, default=128, help='Number of CPU cores to use for multiprocessing.')
 args = parser.parse_args()
 
@@ -138,7 +138,7 @@ w_2v =  w_arr[:, 0, 0]
 h = 0.681
 
 # modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
-modes = ['FIDUCIAL_2p8']
+modes = ['FIDUCIAL']
 
 k_native = np.logspace(-5, 2, 1000001)   # h/Mpc
 
@@ -172,19 +172,19 @@ names = ['A1_v', 'b_v']
 labels = ['A1_v', 'b_v']
 
 # # Define void radius bins
-# void_bins = [(0, 10), (10, 20), (20, 30)]
-# Rv_median = {
-#     'FIDUCIAL':        [8.46, 14.72, 23.17],
-#     'WEAK_AGN':        [8.49, 14.65, 23.10],
-#     'STRONG_AGN':      [8.41, 14.70, 22.94],
-#     'STRONGER_AGN':    [8.44, 14.58, 23.10],
-#     'STRONGEST_AGN':   [8.37, 14.62, 22.94],
-#     'STRONG_SUPERNOVA':[8.59, 14.83, 23.19],
-#     'FIDUCIAL_2p8':    [8.28, 14.37, 22.82]
-# }
+void_bins = [(0, 10), (10, 20), (20, 30)]
+Rv_median = {
+    'FIDUCIAL':        [8.46, 14.72, 23.17],
+    # 'WEAK_AGN':        [8.49, 14.65, 23.10],
+    # 'STRONG_AGN':      [8.41, 14.70, 22.94],
+    # 'STRONGER_AGN':    [8.44, 14.58, 23.10],
+    # 'STRONGEST_AGN':   [8.37, 14.62, 22.94],
+    # 'STRONG_SUPERNOVA':[8.59, 14.83, 23.19],
+    # 'FIDUCIAL_2p8':    [8.28, 14.37, 22.82]
+}
 
-# bin_labels = ['0_10', '10_20', '20_30']
-# delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+bin_labels = ['0_10', '10_20', '20_30']
+delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
 
 # Define void radius bins
 # void_bins = [(0, 10), (10, 20), (20, 30), (30, 50)]
@@ -195,13 +195,13 @@ labels = ['A1_v', 'b_v']
 # bin_labels = ['0_10', '10_20', '20_30', '30_50']
 # delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3']
 
-void_bins = [(0, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
-Rv_median = {
-    'FIDUCIAL_2p8':    [8.28, 12.49, 17.17, 21.94, 26.76, 31.92]
-}
+# void_bins = [(0, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
+# Rv_median = {
+#     'FIDUCIAL_2p8':    [8.28, 12.49, 17.17, 21.94, 26.76, 31.92]
+# }
 
-bin_labels = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
-delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
+# bin_labels = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
+# delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
 
 
 chi2_results = {mode: {'bin_label': [], 'chi2_red': []} for mode in modes}
@@ -309,36 +309,36 @@ for i in range(len(modes)):
         model_mask_VII = (model_rp >= lower_rp_VII) & (model_rp <= upper_rp_VII)
 
 
-        #run = 'L1000N1800'
-        run = 'L2800N5040'
+        run = 'L1000N1800'
+        #run = 'L2800N5040'
         redshift = '0.0'
 
         # -------------------------------------------------
         # load measurement + JK realizations
         # -------------------------------------------------
-        # meas_file = (
-        #     f'/disks/shear16/herle/correlations1/'
-        #     f'correlations_joint_revolver_{bin_label}hMpc_{run}'
-        #     f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical.h5'
-        # )
-
-        # wvp_JK_measured = np.load(
-        #     f'/disks/shear16/herle/correlations1/'
-        #     f'wvp_xip_jk_voids_joint_revolver_{bin_label}hMpc_{run}'
-        #     f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical.npy'
-        # )
-
         meas_file = (
             f'/disks/shear16/herle/correlations1/'
             f'correlations_joint_revolver_{bin_label}hMpc_{run}'
-            f'_HYDRO_FIDUCIAL_{redshift}_env_dep_analytical.h5'
+            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical.h5'
         )
 
         wvp_JK_measured = np.load(
             f'/disks/shear16/herle/correlations1/'
             f'wvp_xip_jk_voids_joint_revolver_{bin_label}hMpc_{run}'
-            f'_HYDRO_FIDUCIAL_{redshift}_env_dep_analytical.npy'
+            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical.npy'
         )
+
+        # meas_file = (
+        #     f'/disks/shear16/herle/correlations1/'
+        #     f'correlations_joint_revolver_{bin_label}hMpc_{run}'
+        #     f'_HYDRO_FIDUCIAL_{redshift}_env_dep_analytical.h5'
+        # )
+
+        # wvp_JK_measured = np.load(
+        #     f'/disks/shear16/herle/correlations1/'
+        #     f'wvp_xip_jk_voids_joint_revolver_{bin_label}hMpc_{run}'
+        #     f'_HYDRO_FIDUCIAL_{redshift}_env_dep_analytical.npy'
+        # )
 
         # -------------------------------------------------
         # read measurement
@@ -391,14 +391,14 @@ for i in range(len(modes)):
 
         cov_mat.set_index(rp_cut, inplace=True)
 
-        # --- plots per bin (unchanged) ---
-        fig, ax = plt.subplots()
-        im = ax.imshow(np.log10(np.abs(cov_mat)), origin='lower')
-        fig.colorbar(im, ax=ax)
-        plt.tight_layout()
-        plt.savefig(f'/disks/shear16/herle/code/plots/'
-            f'cov_void_corr_{modes[i]}_{bin_label}_particles_env_dep_analytical.png')
-        plt.close()
+        # # --- plots per bin (unchanged) ---
+        # fig, ax = plt.subplots()
+        # im = ax.imshow(np.log10(np.abs(cov_mat)), origin='lower')
+        # fig.colorbar(im, ax=ax)
+        # plt.tight_layout()
+        # plt.savefig(f'/disks/shear16/herle/code/plots/'
+        #     f'cov_void_corr_{modes[i]}_{bin_label}_particles_env_dep_analytical.png')
+        # plt.close()
 
         # -------------------------------------------------
         # cache arrays for likelihood (same as old script)
@@ -675,8 +675,20 @@ for i in range(len(modes)):
         ax_main.set_xlim(1, 600)
         ax_main.set_ylabel(r'$r_p w_{\mathrm{V}+}\,[\mathrm{Mpc}^2/h^2]$')
         ax_main.legend(frameon=False)
+        ax_main.set_title(
+            f'{modes[i]}  |  $R_v = {void_bin[0]}$–${void_bin[1]}$ Mpc/$h$  '
+            f'|  $\\langle R_v \\rangle = {Rv:.2f}$ Mpc/$h$',
+            fontsize=12
+        )
 
         ax_res.axhline(0, color='k', ls=':')
+        ax_res.text(
+            0.02, 0.92,
+            f'$\\chi^2_{{\\rm red}} = {chi2_red:.2f}$',
+            transform=ax_res.transAxes,
+            fontsize=12,
+            va='top'
+        )
         ax_res.set_xscale('log')
         ax_res.set_ylim(-200, 200)
         ax_res.set_xlabel(r'$r_p$ [Mpc/h]')

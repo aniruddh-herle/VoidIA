@@ -87,7 +87,7 @@ def smooth(delta_v, window_length=1001, polyorder=3):
 # mean_densities = [1.846624e-01, 1.846601e-01, 1.846617e-01, 1.846623e-01, 1.846617e-01]
 
 
-modes = ['FIDUCIAL_2p8']
+modes = ['FIDUCIAL']
 mean_densities = [1.846582e-01]
 
 for i in range(len(modes)):
@@ -95,7 +95,7 @@ for i in range(len(modes)):
     print(modes[i])
 
     # profile_dir = f"/disks/shear16/herle/void_profiles/zobov_hydro4/{modes[i]}/"
-    profile_dir = f"/disks/shear16/herle/void_profiles/zobov_hydro_particles/{modes[i]}/"
+    profile_dir = f"/disks/shear16/herle/void_profiles/zobov_hydro_particles_hres/{modes[i]}/"
     mean_density = mean_densities[i]
 
     print("Mean density (Mpc^-3/h^3): ", mean_density)
@@ -115,16 +115,16 @@ for i in range(len(modes)):
     bin_1  = []   
     bin_2  = []   
     bin_3  = []
-    bin_4  = [] 
-    bin_5  = []  
+    # bin_4  = [] 
+    # bin_5  = []  
 
     # NEW: track radii per bin
     Rv_bin_0 = []
     Rv_bin_1 = []
     Rv_bin_2 = []
     Rv_bin_3 = []
-    Rv_bin_4 = []
-    Rv_bin_5 = []
+    # Rv_bin_4 = []
+    # Rv_bin_5 = []
 
     r_phys = None
 
@@ -142,45 +142,45 @@ for i in range(len(modes)):
         all_profiles.append(delta)
 
 
-        # if 0 <= Rv < 10:
-        #     bin_0.append(delta)
-        #     Rv_bin_0.append(Rv)
-
-        # if 10 <= Rv < 20:
-        #     bin_1.append(delta)
-        #     Rv_bin_1.append(Rv)
-        
-        # if 20 <= Rv < 30:
-        #     bin_2.append(delta)
-        #     Rv_bin_2.append(Rv)
-
-        # if 30 <= Rv < 50:
-        #     bin_3.append(delta)
-        #     Rv_bin_3.append(Rv)
-
         if 0 <= Rv < 10:
             bin_0.append(delta)
             Rv_bin_0.append(Rv)
 
-        if 10 <= Rv < 15:
+        if 10 <= Rv < 20:
             bin_1.append(delta)
             Rv_bin_1.append(Rv)
         
-        if 15 <= Rv < 20:
+        if 20 <= Rv < 30:
             bin_2.append(delta)
             Rv_bin_2.append(Rv)
 
-        if 20 <= Rv < 25:
+        if 30 <= Rv < 50:
             bin_3.append(delta)
             Rv_bin_3.append(Rv)
 
-        if 25 <= Rv < 30:
-            bin_4.append(delta)
-            Rv_bin_4.append(Rv)
+        # if 0 <= Rv < 10:
+        #     bin_0.append(delta)
+        #     Rv_bin_0.append(Rv)
 
-        if 30 <= Rv < 50:
-            bin_5.append(delta)
-            Rv_bin_5.append(Rv)
+        # if 10 <= Rv < 15:
+        #     bin_1.append(delta)
+        #     Rv_bin_1.append(Rv)
+        
+        # if 15 <= Rv < 20:
+        #     bin_2.append(delta)
+        #     Rv_bin_2.append(Rv)
+
+        # if 20 <= Rv < 25:
+        #     bin_3.append(delta)
+        #     Rv_bin_3.append(Rv)
+
+        # if 25 <= Rv < 30:
+        #     bin_4.append(delta)
+        #     Rv_bin_4.append(Rv)
+
+        # if 30 <= Rv < 50:
+        #     bin_5.append(delta)
+        #     Rv_bin_5.append(Rv)
 
     # convert to arrays
     all_profiles = np.array(all_profiles)
@@ -188,8 +188,8 @@ for i in range(len(modes)):
     bin_1 = np.array(bin_1)
     bin_2 = np.array(bin_2)
     bin_3 = np.array(bin_3)
-    bin_4 = np.array(bin_4)
-    bin_5 = np.array(bin_5)
+    # bin_4 = np.array(bin_4)
+    # bin_5 = np.array(bin_5)
 
 
     med_all, p16_all, p84_all = stack_stats(all_profiles)
@@ -198,16 +198,22 @@ for i in range(len(modes)):
     med_1, _, _ = stack_stats(bin_1)
     med_2, _, _ = stack_stats(bin_2)
     med_3, _, _ = stack_stats(bin_3)
-    med_4, _, _ = stack_stats(bin_4)
-    med_5, _, _ = stack_stats(bin_5)
+    # med_4, _, _ = stack_stats(bin_4)
+    # med_5, _, _ = stack_stats(bin_5)
 
     print("Number of voids in each bin:")
     print(f"Rv 0 < Rv < 10:  {len(bin_0)}")
-    print(f"Rv 10 < Rv < 15: {len(bin_1)}")
-    print(f"Rv 15 < Rv < 20: {len(bin_2)}")
-    print(f"Rv 20 < Rv < 25: {len(bin_3)}")
-    print(f"Rv 25 < Rv < 30: {len(bin_4)}")
-    print(f"Rv 30 < Rv < 50: {len(bin_5)}")
+    print(f"Rv 10 < Rv < 20: {len(bin_1)}")
+    print(f"Rv 20 < Rv < 30: {len(bin_2)}")
+    print(f"Rv 30 < Rv < 50: {len(bin_3)}")
+
+    # print("Number of voids in each bin:")
+    # print(f"Rv 0 < Rv < 10:  {len(bin_0)}")
+    # print(f"Rv 10 < Rv < 15: {len(bin_1)}")
+    # print(f"Rv 15 < Rv < 20: {len(bin_2)}")
+    # print(f"Rv 20 < Rv < 25: {len(bin_3)}")
+    # print(f"Rv 25 < Rv < 30: {len(bin_4)}")
+    # print(f"Rv 30 < Rv < 50: {len(bin_5)}")
 
     med_all, p16_all, p84_all = stack_stats(all_profiles)
 
@@ -215,40 +221,52 @@ for i in range(len(modes)):
     med_1, _, _ = stack_stats(bin_1)
     med_2, _, _ = stack_stats(bin_2)
     med_3, _, _ = stack_stats(bin_3)
-    med_4, _, _ = stack_stats(bin_4)
-    med_5, _, _ = stack_stats(bin_5)
+    # med_4, _, _ = stack_stats(bin_4)
+    # med_5, _, _ = stack_stats(bin_5)
 
     # NEW: median void radius per bin
     Rv_med_0 = np.median(Rv_bin_0)
     Rv_med_1 = np.median(Rv_bin_1)
     Rv_med_2 = np.median(Rv_bin_2)
     Rv_med_3 = np.median(Rv_bin_3)
-    Rv_med_4 = np.median(Rv_bin_4)
-    Rv_med_5 = np.median(Rv_bin_5)
+    # Rv_med_4 = np.median(Rv_bin_4)
+    # Rv_med_5 = np.median(Rv_bin_5)
 
     print("Median Rv in each bin:")
     print(f"Rv 0 < Rv < 10:  {Rv_med_0:.2f}")
-    print(f"Rv 10 < Rv < 15: {Rv_med_1:.2f}")
-    print(f"Rv 15 < Rv < 20: {Rv_med_2:.2f}")
-    print(f"Rv 20 < Rv < 25: {Rv_med_3:.2f}")
-    print(f"Rv 25 < Rv < 30: {Rv_med_4:.2f}")
-    print(f"Rv 30 < Rv < 50: {Rv_med_5:.2f}")
+    print(f"Rv 10 < Rv < 20: {Rv_med_1:.2f}")
+    print(f"Rv 20 < Rv < 30: {Rv_med_2:.2f}")
+    print(f"Rv 30 < Rv < 50: {Rv_med_3:.2f}")
+
+    # print("Median Rv in each bin:")
+    # print(f"Rv 0 < Rv < 10:  {Rv_med_0:.2f}")
+    # print(f"Rv 10 < Rv < 15: {Rv_med_1:.2f}")
+    # print(f"Rv 15 < Rv < 20: {Rv_med_2:.2f}")
+    # print(f"Rv 20 < Rv < 25: {Rv_med_3:.2f}")
+    # print(f"Rv 25 < Rv < 30: {Rv_med_4:.2f}")
+    # print(f"Rv 30 < Rv < 50: {Rv_med_5:.2f}")
 
     # NEW: mean void radius per bin
     Rv_mean_0 = np.mean(Rv_bin_0)
     Rv_mean_1 = np.mean(Rv_bin_1)
     Rv_mean_2 = np.mean(Rv_bin_2)
     Rv_mean_3 = np.mean(Rv_bin_3)
-    Rv_mean_4 = np.mean(Rv_bin_4)
-    Rv_mean_5 = np.mean(Rv_bin_5)
+    # Rv_mean_4 = np.mean(Rv_bin_4)
+    # Rv_mean_5 = np.mean(Rv_bin_5)
 
     print("Mean Rv in each bin:")
     print(f"Rv 0 < Rv < 10:  {Rv_mean_0:.2f}")
-    print(f"Rv 10 < Rv < 15: {Rv_mean_1:.2f}")
-    print(f"Rv 15 < Rv < 20: {Rv_mean_2:.2f}")
-    print(f"Rv 20 < Rv < 25: {Rv_mean_3:.2f}")
-    print(f"Rv 25 < Rv < 30: {Rv_mean_4:.2f}")
-    print(f"Rv 30 < Rv < 50: {Rv_mean_5:.2f}")
+    print(f"Rv 10 < Rv < 20: {Rv_mean_1:.2f}")
+    print(f"Rv 20 < Rv < 30: {Rv_mean_2:.2f}")
+    print(f"Rv 30 < Rv < 50: {Rv_mean_3:.2f}")
+
+    # print("Mean Rv in each bin:")
+    # print(f"Rv 0 < Rv < 10:  {Rv_mean_0:.2f}")
+    # print(f"Rv 10 < Rv < 15: {Rv_mean_1:.2f}")
+    # print(f"Rv 15 < Rv < 20: {Rv_mean_2:.2f}")
+    # print(f"Rv 20 < Rv < 25: {Rv_mean_3:.2f}")
+    # print(f"Rv 25 < Rv < 30: {Rv_mean_4:.2f}")
+    # print(f"Rv 30 < Rv < 50: {Rv_mean_5:.2f}")
     
 
 
@@ -278,12 +296,18 @@ for i in range(len(modes)):
     # =====================================================
     # Right: radius bins (medians only)
     # =====================================================
+    
     ax[1].plot(r_phys, med_0, label="0–10 Mpc/h")
-    ax[1].plot(r_phys, med_1, label="10–15 Mpc")
-    ax[1].plot(r_phys, med_2, label="15–20 Mpc")
-    ax[1].plot(r_phys, med_3, label="20–25 Mpc")
-    ax[1].plot(r_phys, med_4, label="25–30 Mpc")
-    ax[1].plot(r_phys, med_5, label="30–50 Mpc")
+    ax[1].plot(r_phys, med_1, label="10–20 Mpc")
+    ax[1].plot(r_phys, med_2, label="20–30 Mpc")
+    ax[1].plot(r_phys, med_3, label="30–50 Mpc")
+
+    # ax[1].plot(r_phys, med_0, label="0–10 Mpc/h")
+    # ax[1].plot(r_phys, med_1, label="10–15 Mpc")
+    # ax[1].plot(r_phys, med_2, label="15–20 Mpc")
+    # ax[1].plot(r_phys, med_3, label="20–25 Mpc")
+    # ax[1].plot(r_phys, med_4, label="25–30 Mpc")
+    # ax[1].plot(r_phys, med_5, label="30–50 Mpc")
 
     ax[1].axhline(0, ls="--")
 
@@ -301,7 +325,7 @@ for i in range(len(modes)):
     # =====================================================
 
     # truncate integration range
-    rmax = 100
+    rmax = 400
     mask = r_phys <= rmax
 
     r_trunc = r_phys[mask]
@@ -310,8 +334,8 @@ for i in range(len(modes)):
     delta_1_trunc = med_1[mask]
     delta_2_trunc = med_2[mask]
     delta_3_trunc = med_3[mask]
-    delta_4_trunc = med_4[mask]
-    delta_5_trunc = med_5[mask]
+    # delta_4_trunc = med_4[mask]
+    # delta_5_trunc = med_5[mask]
 
 
     delta_k_0 = hankel_transform(r_trunc, delta_0_trunc, k_native)
@@ -326,30 +350,36 @@ for i in range(len(modes)):
     delta_k_3 = hankel_transform(r_trunc, delta_3_trunc, k_native)
     delta_k_3 /= h**3        # amplitude: (Mpc/h)^3 -> Mpc^3
 
-    delta_k_4 = hankel_transform(r_trunc, delta_4_trunc, k_native)
-    delta_k_4 /= h**3        # amplitude: (Mpc/h)^3 -> Mpc^3
+    # delta_k_4 = hankel_transform(r_trunc, delta_4_trunc, k_native)
+    # delta_k_4 /= h**3        # amplitude: (Mpc/h)^3 -> Mpc^3
 
-    delta_k_5 = hankel_transform(r_trunc, delta_5_trunc, k_native)
-    delta_k_5 /= h**3        # amplitude: (Mpc/h)^3 -> Mpc^3
+    # delta_k_5 = hankel_transform(r_trunc, delta_5_trunc, k_native)
+    # delta_k_5 /= h**3        # amplitude: (Mpc/h)^3 -> Mpc^3
 
     k = k_native * h
     #k = k_native
 
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin0_particles.npy", delta_k_0)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin1_particles.npy", delta_k_1)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin2_particles.npy", delta_k_2)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin3_particles.npy", delta_k_3)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin4_particles.npy", delta_k_4)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin5_particles.npy", delta_k_5)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin0_particles_rmax300.npy", delta_k_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin1_particles_rmax300.npy", delta_k_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin2_particles_rmax300.npy", delta_k_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin3_particles_rmax300.npy", delta_k_3)
+    # np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin4_particles_rmax200.npy", delta_k_4)
+    # np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_Rvbin5_particles_rmax200.npy", delta_k_5)
 
     # plot all together
     plt.figure(figsize=(5,5))
+
     plt.plot(k, delta_k_0/1e3, label="0–10 Mpc/h")
-    plt.plot(k, delta_k_1/1e3, label="10–15 Mpc")  
-    plt.plot(k, delta_k_2/1e3, label="15–20 Mpc")
-    plt.plot(k, delta_k_3/1e3, label="20–25 Mpc")
-    plt.plot(k, delta_k_4/1e3, label="25–30 Mpc")
-    plt.plot(k, delta_k_5/1e3, label="30–50 Mpc")
+    plt.plot(k, delta_k_1/1e3, label="10–20 Mpc")  
+    plt.plot(k, delta_k_2/1e3, label="20–30 Mpc")
+    plt.plot(k, delta_k_3/1e3, label="30–50 Mpc")
+
+    # plt.plot(k, delta_k_0/1e3, label="0–10 Mpc/h")
+    # plt.plot(k, delta_k_1/1e3, label="10–15 Mpc")  
+    # plt.plot(k, delta_k_2/1e3, label="15–20 Mpc")
+    # plt.plot(k, delta_k_3/1e3, label="20–25 Mpc")
+    # plt.plot(k, delta_k_4/1e3, label="25–30 Mpc")
+    # plt.plot(k, delta_k_5/1e3, label="30–50 Mpc")
 
     plt.xscale("log")
     plt.axhline(0, ls="--")
@@ -365,7 +395,7 @@ for i in range(len(modes)):
 
 
     plt.tight_layout()
-    plt.savefig(f"/disks/shear16/herle/code/plots/zobov_{modes[i]}_void_delta_k_profiles_particles.png")
+    plt.savefig(f"/disks/shear16/herle/code/plots/zobov_{modes[i]}_void_delta_k_profiles_particles_rmax400.png")
 
     
 
@@ -385,24 +415,24 @@ for i in range(len(modes)):
     smooth_delta_1 = smooth(delta_k_1)
     smooth_delta_2 = smooth(delta_k_2)
     smooth_delta_3 = smooth(delta_k_3)
-    smooth_delta_4 = smooth(delta_k_4)
-    smooth_delta_5 = smooth(delta_k_5)
+    # smooth_delta_4 = smooth(delta_k_4)
+    # smooth_delta_5 = smooth(delta_k_5)
 
     # -----------------------------
     # save arrays
     # -----------------------------
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_raw_particles.npy", delta_k_0)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_smooth_particles.npy", smooth_delta_0)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_raw_particles.npy", delta_k_1)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_smooth_particles.npy", smooth_delta_1)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_raw_particles.npy", delta_k_2)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_smooth_particles.npy", smooth_delta_2)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_raw_particles.npy", delta_k_3)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_smooth_particles.npy", smooth_delta_3)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin4_raw_particles.npy", delta_k_4)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin4_smooth_particles.npy", smooth_delta_4)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin5_raw_particles.npy", delta_k_5)
-    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin5_smooth_particles.npy", smooth_delta_5)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_raw_particles_rmax400.npy", delta_k_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin0_smooth_particles_rmax400.npy", smooth_delta_0)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_raw_particles_rmax400.npy", delta_k_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin1_smooth_particle_rmax400.npy", smooth_delta_1)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_raw_particles_rmax400.npy", delta_k_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin2_smooth_particles_rmax400.npy", smooth_delta_2)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_raw_particles_rmax400.npy", delta_k_3)
+    np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin3_smooth_particles_rmax400.npy", smooth_delta_3)
+    # np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin4_raw_particles_rmax200.npy", delta_k_4)
+    # np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin4_smooth_particles_rmax200.npy", smooth_delta_4)
+    # np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin5_raw_particles_rmax200.npy", delta_k_5)
+    # np.save(f"/disks/shear16/herle/code/temp_data/zobov_{modes[i]}_void_delta_k_bin5_smooth_particles_rmax200.npy", smooth_delta_5)
 
 
     # =====================================================
@@ -414,16 +444,16 @@ for i in range(len(modes)):
 
     plt.plot(k, smooth_delta_0/1e3, label="0–10 Mpc/h (smoothed)", color="C0")
     plt.plot(k, delta_k_0/1e3, ls="--", label="0–10 Mpc/h (raw)", color="C0", alpha=0.5)
-    plt.plot(k, smooth_delta_1/1e3, label="10–15 Mpc/h (smoothed)", color="C0")
-    plt.plot(k, delta_k_1/1e3, ls="--", label="10–15 Mpc/h (raw)", color="C0", alpha=0.5)
-    plt.plot(k, smooth_delta_2/1e3, label="15–20 Mpc/h (smoothed)", color="C0")
-    plt.plot(k, delta_k_2/1e3, ls="--", label="15–20 Mpc/h (raw)", color="C0", alpha=0.5)
-    plt.plot(k, smooth_delta_3/1e3, label="20–25 Mpc/h (smoothed)", color="C0")
-    plt.plot(k, delta_k_3/1e3, ls="--", label="20–25 Mpc/h (raw)", color="C0", alpha=0.5)
-    plt.plot(k, smooth_delta_4/1e3, label="25–30 Mpc/h (smoothed)", color="C0")
-    plt.plot(k, delta_k_4/1e3, ls="--", label="25-30 Mpc/h (raw)", color="C0", alpha=0.5)
-    plt.plot(k, smooth_delta_5/1e3, label="30–50 Mpc/h (smoothed)", color="C0")
-    plt.plot(k, delta_k_5/1e3, ls="--", label="30–50 Mpc/h (raw)", color="C0", alpha=0.5)
+    plt.plot(k, smooth_delta_1/1e3, label="10–20 Mpc/h (smoothed)", color="C0")
+    plt.plot(k, delta_k_1/1e3, ls="--", label="10–20 Mpc/h (raw)", color="C0", alpha=0.5)
+    plt.plot(k, smooth_delta_2/1e3, label="20–30 Mpc/h (smoothed)", color="C0")
+    plt.plot(k, delta_k_2/1e3, ls="--", label="20–30 Mpc/h (raw)", color="C0", alpha=0.5)
+    plt.plot(k, smooth_delta_3/1e3, label="30–50 Mpc/h (smoothed)", color="C0")
+    plt.plot(k, delta_k_3/1e3, ls="--", label="30–50 Mpc/h (raw)", color="C0", alpha=0.5)
+    # plt.plot(k, smooth_delta_4/1e3, label="25–30 Mpc/h (smoothed)", color="C0")
+    # plt.plot(k, delta_k_4/1e3, ls="--", label="25-30 Mpc/h (raw)", color="C0", alpha=0.5)
+    # plt.plot(k, smooth_delta_5/1e3, label="30–50 Mpc/h (smoothed)", color="C0")
+    # plt.plot(k, delta_k_5/1e3, ls="--", label="30–50 Mpc/h (raw)", color="C0", alpha=0.5)
 
 
     plt.xscale("log")

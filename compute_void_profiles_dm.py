@@ -81,7 +81,7 @@ plt.savefig(
 )
 
 
-# box_size = 1000 * h
+#box_size = 1000 * h
 box_size = 2800 * h
 
 # # -------------------------------
@@ -150,19 +150,76 @@ box_size = 2800 * h
 # -------------------------------
 hydro_modes = {
 
-    "FIDUCIAL": (
-        "zobov-Flamingo_outputFIDUCIAL_cat.txt",
-        "L1000N1800_HYDRO_FIDUCIAL_77.npy",
-        r"L1$_{\rm m9}$",
-        "#117733"
-    ),
-
     "FIDUCIAL_2p8": (
         "zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt",
         "L2800N5040_HYDRO_FIDUCIAL_78.npy",
         r"L2p8$_{\rm m9}$",
         "#332288"
-    )
+    ),
+
+    # "FIDUCIAL": (
+    #     "zobov-Flamingo_outputFIDUCIAL_cat.txt",
+    #     "L1000N1800_HYDRO_FIDUCIAL_77.npy",
+    #     r"L1$_{\rm m9}$",
+    #     "#117733"
+    # ),
+
+
+    # "WEAK_AGN": (
+    #     "zobov-Flamingo_outputWEAK_AGN_cat.txt",
+    #     "L1000N1800_HYDRO_WEAK_AGN_77.npy",
+    #     r"fgas$+2\sigma$",
+    #     "#ABD0E6"
+    # ),
+
+    # "STRONG_AGN": (
+    #     "zobov-Flamingo_outputSTRONG_AGN_cat.txt",
+    #     "L1000N1800_HYDRO_STRONG_AGN_77.npy",
+    #     r"fgas$-2\sigma$",
+    #     "#6AAED6"
+    # ),
+
+    # "STRONGER_AGN": (
+    #     "zobov-Flamingo_outputSTRONGER_AGN_cat.txt",
+    #     "L1000N1800_HYDRO_STRONGER_AGN_77.npy",
+    #     r"fgas$-4\sigma$",
+    #     "#3787C0"
+    # ),
+
+    # "STRONGEST_AGN": (
+    #     "zobov-Flamingo_outputSTRONGEST_AGN_cat.txt",
+    #     "L1000N1800_HYDRO_STRONGEST_AGN_77.npy",
+    #     r"fgas$-8\sigma$",
+    #     "#105BA4"
+    # ),
+
+    # "STRONG_SUPERNOVA": (
+    #     "zobov-Flamingo_outputSTRONG_SUPERNOVA_cat.txt",
+    #     "L1000N1800_HYDRO_STRONG_SUPERNOVA_77.npy",
+    #     r"$M_*-\sigma$",
+    #     "#FF8C40"
+    # ),
+
+    # "JETS": (
+    #     "zobov-Flamingo_outputJETS_published_cat.txt",
+    #     "L1000N1800_HYDRO_JETS_published_77.npy",
+    #     "JETS",
+    #     "#7EFF4B"
+    # ),
+
+    # "STRONG_JETS": (
+    #     "zobov-Flamingo_outputSTRONG_JETS_published_cat.txt",
+    #     "L1000N1800_HYDRO_STRONG_JETS_published_77.npy",
+    #     r"JETS fgas$-4\sigma$",
+    #     "#55E18E"
+    # )
+
+    # "FIDUCIAL_2p8": (
+    #     "zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt",
+    #     "L2800N5040_HYDRO_FIDUCIAL_78.npy",
+    #     r"L2p8$_{\rm m9}$",
+    #     "#332288"
+    # )
 }
 
 # -------------------------------
@@ -240,8 +297,8 @@ hydro_modes = {
 # -------------------------------
 # Bins
 # -------------------------------
-r_bins_phys   = np.linspace(0, 200, 80)
-r_bins_scaled = np.linspace(0, 5, 60)
+r_bins_phys   = np.linspace(0, 300, 300)
+r_bins_scaled = np.linspace(0, 5, 200)
 
 r_cent_phys   = 0.5*(r_bins_phys[:-1] + r_bins_phys[1:])
 r_cent_scaled = 0.5*(r_bins_scaled[:-1] + r_bins_scaled[1:])
@@ -363,6 +420,72 @@ def compute_void_profiles(
     return np.array(profiles_phys), np.array(profiles_scaled)
 
 
+save_base_dir = "/disks/shear16/herle/void_profiles/zobov_hydro_particles_hres/"
+
+all_profiles_phys = {}
+all_profiles_scaled = {}
+colors = {}
+mean_densities = {}
+labels = {}
+
+# -------------------------------
+# Compute profiles for all hydro runs
+
+for mode, (void_file, particle_file, label, color) in hydro_modes.items():
+
+    print(f"Processing {label}")
+
+    # -------------------------------
+    # Read void catalogue
+    # -------------------------------
+    zobov_voids = np.loadtxt(
+        f"/disks/shear16/herle/voids/{void_file}"
+    )
+
+    # zobov_voids = zobov_voids[
+    #     (zobov_voids[:,4] >= 10) &
+    #     (zobov_voids[:,4] <= 12)
+    # ]
+
+
+    # -------------------------------
+    # Read galaxy catalogue
+    # -------------------------------
+    particle_data = (
+    "/disks/shear16/herle/particle_data/"+ particle_file)
+
+    pos_dm = np.load(particle_data)
+
+    pos_dm *= h
+
+    px, py, pz = pos_dm[:, 0], pos_dm[:, 1], pos_dm[:, 2]
+
+    particle_positions = np.column_stack((px, py, pz))
+    print("Number of particles: ", len(particle_positions))
+
+    # print min and max of galaxy positions
+    print(f"Particle positions: x = [{px.min():.2f}, {px.max():.2f}] Mpc/h")
+    print(f"Particle positions: y = [{py.min():.2f}, {py.max():.2f}] Mpc/h")
+    print(f"Particle positions: z = [{pz.min():.2f}, {pz.max():.2f}] Mpc/h")
+    volume = box_size**3
+    mean_densities[label] = len(particle_positions) / volume
+
+    print(f"Mean density for {label}: {mean_densities[label]:.6e} Mpc^-3/h^3")
+
+    save_dir = os.path.join(save_base_dir, mode)
+
+    phys, scaled = compute_void_profiles(
+        zobov_voids[:,1:4],
+        zobov_voids[:,4],
+        particle_positions,
+        save_dir,
+    )
+
+    all_profiles_phys[mode] = phys
+    all_profiles_scaled[mode] = scaled
+    colors[mode] = color
+    labels[mode] = label
+
 # save_base_dir = "/disks/shear16/herle/void_profiles/zobov_hydro_particles/"
 
 # all_profiles_phys = {}
@@ -371,129 +494,63 @@ def compute_void_profiles(
 # mean_densities = {}
 # labels = {}
 
-# # -------------------------------
-# # Compute profiles for all hydro runs
-
 # for mode, (void_file, particle_file, label, color) in hydro_modes.items():
 
-#     print(f"Processing {label}")
+#     print(f"Loading {label}")
 
-#     # -------------------------------
-#     # Read void catalogue
-#     # -------------------------------
-#     zobov_voids = np.loadtxt(
-#         f"/disks/shear16/herle/voids/{void_file}"
-#     )
-
-#     # zobov_voids = zobov_voids[
-#     #     (zobov_voids[:,4] >= 10) &
-#     #     (zobov_voids[:,4] <= 12)
-#     # ]
-
-
-#     # -------------------------------
-#     # Read galaxy catalogue
-#     # -------------------------------
-#     particle_data = (
-#     "/disks/shear16/herle/particle_data/"+ particle_file)
-
-#     pos_dm = np.load(particle_data)
-
-#     pos_dm *= h
-
-#     px, py, pz = pos_dm[:, 0], pos_dm[:, 1], pos_dm[:, 2]
-
-#     particle_positions = np.column_stack((px, py, pz))
-#     print("Number of particles: ", len(particle_positions))
-
-#     # print min and max of galaxy positions
-#     print(f"Particle positions: x = [{px.min():.2f}, {px.max():.2f}] Mpc/h")
-#     print(f"Particle positions: y = [{py.min():.2f}, {py.max():.2f}] Mpc/h")
-#     print(f"Particle positions: z = [{pz.min():.2f}, {pz.max():.2f}] Mpc/h")
-#     volume = box_size**3
-#     mean_densities[label] = len(particle_positions) / volume
-
-#     print(f"Mean density for {label}: {mean_densities[label]:.6e} Mpc^-3/h^3")
+#     # ------------------------------------------------
+#     # Load previously computed profiles
+#     # ------------------------------------------------
 
 #     save_dir = os.path.join(save_base_dir, mode)
 
-#     phys, scaled = compute_void_profiles(
-#         zobov_voids[:,1:4],
-#         zobov_voids[:,4],
-#         particle_positions,
-#         save_dir,
+#     profile_files = [
+#         os.path.join(save_dir, f)
+#         for f in os.listdir(save_dir)
+#         if f.endswith(".npz")
+#     ]
+
+#     print(f"Found {len(profile_files)} profile files")
+
+#     profiles_phys = []
+#     profiles_scaled = []
+
+#     for fname in profile_files:
+#         d = np.load(fname)
+
+#         profiles_phys.append(d["density_phys"])
+#         profiles_scaled.append(d["density_scaled"])
+
+#     all_profiles_phys[mode] = np.array(profiles_phys)
+#     all_profiles_scaled[mode] = np.array(profiles_scaled)
+
+#     # ------------------------------------------------
+#     # Load particles only to calculate mean density
+#     # ------------------------------------------------
+
+#     particle_data = (
+#         "/disks/shear16/herle/particle_data/" + particle_file
 #     )
 
-#     all_profiles_phys[mode] = phys
-#     all_profiles_scaled[mode] = scaled
+#     pos_dm = np.load(particle_data)
+#     pos_dm *= h
+
+#     particle_positions = pos_dm
+
+#     print("Number of particles:", len(particle_positions))
+
+#     volume = box_size**3
+
+#     # If particles are downsampled by factor 100:
+#     mean_densities[label] = len(particle_positions) / volume
+
+#     print(
+#         f"Mean density for {label}: "
+#         f"{mean_densities[label]:.6e} Mpc^-3 h^3"
+#     )
+
 #     colors[mode] = color
 #     labels[mode] = label
-
-save_base_dir = "/disks/shear16/herle/void_profiles/zobov_hydro_particles/"
-
-all_profiles_phys = {}
-all_profiles_scaled = {}
-colors = {}
-mean_densities = {}
-labels = {}
-
-for mode, (void_file, particle_file, label, color) in hydro_modes.items():
-
-    print(f"Loading {label}")
-
-    # ------------------------------------------------
-    # Load previously computed profiles
-    # ------------------------------------------------
-
-    save_dir = os.path.join(save_base_dir, mode)
-
-    profile_files = [
-        os.path.join(save_dir, f)
-        for f in os.listdir(save_dir)
-        if f.endswith(".npz")
-    ]
-
-    print(f"Found {len(profile_files)} profile files")
-
-    profiles_phys = []
-    profiles_scaled = []
-
-    for fname in profile_files:
-        d = np.load(fname)
-
-        profiles_phys.append(d["density_phys"])
-        profiles_scaled.append(d["density_scaled"])
-
-    all_profiles_phys[mode] = np.array(profiles_phys)
-    all_profiles_scaled[mode] = np.array(profiles_scaled)
-
-    # ------------------------------------------------
-    # Load particles only to calculate mean density
-    # ------------------------------------------------
-
-    particle_data = (
-        "/disks/shear16/herle/particle_data/" + particle_file
-    )
-
-    pos_dm = np.load(particle_data)
-    pos_dm *= h
-
-    particle_positions = pos_dm
-
-    print("Number of particles:", len(particle_positions))
-
-    volume = box_size**3
-
-    # If particles are downsampled by factor 100:
-    mean_densities[label] = len(particle_positions) / volume
-
-    print(
-        f"Mean density for {label}: "
-        f"{mean_densities[label]:.6e} Mpc^-3 h^3"
-    )
-
-    colors[mode] = color
-    labels[mode] = label
 
 # -------------------------------
 # Plot stacked median + percentiles

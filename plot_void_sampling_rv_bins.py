@@ -74,11 +74,21 @@ FLAMINGO_labels = [
     r"L2p8$_m9$"
 ]
 
-r_bins = [
-    (0,10),
-    (10,20),
-    (20,30),
-    (30,50)
+# Standard binning for all models except FIDUCIAL_2p8
+r_bins_standard = [
+    (0, 10),
+    (10, 20),
+    (20, 30)
+]
+
+# FIDUCIAL_2p8 binning
+r_bins_2p8 = [
+    (0, 10),
+    (10, 15),
+    (15, 20),
+    (20, 25),
+    (25, 30),
+    (30, 50)
 ]
 
 # Rv_median = {
@@ -138,7 +148,6 @@ r_bins = [
 #         (30,50): 31.92
 #     }
 # }
-
 Rv_mean = {
 
     'FIDUCIAL':
@@ -192,17 +201,23 @@ Rv_mean = {
     'FIDUCIAL_2p8':
     {
         (0,10): 8.04,
-        (10,20): 14.55,
-        (20,30): 23.37,
+        (10,15): 12.49,
+        (15,20): 17.28,
+        (20,25): 22.12,
+        (25,30): 26.98,
         (30,50): 32.56
     }
 }
 
 bin_labels = {
     (0, 10):  '0_10',
+    (10, 15): '10_15',
     (10, 20): '10_20',
+    (15, 20): '15_20',
+    (20, 25): '20_25',
     (20, 30): '20_30',
-    (30, 50): '30_50',   # add if you have this bin, else remove from r_bins
+    (25, 30): '25_30',
+    (30, 50): '30_50',
 }
 
 
@@ -234,30 +249,31 @@ parameter_results = {
 # Main loop over radius bins
 # =====================================================
 
-for Rmin, Rmax in r_bins:
-
+for i, mode in enumerate(modes):
 
     print("-----------------------------------")
-    print(f"Processing Rv bin {Rmin}-{Rmax}")
+    print(f"Processing {mode}")
     print("-----------------------------------")
 
+    # Select appropriate Rv bins
+    if mode == 'FIDUCIAL_2p8':
+        r_bins = r_bins_2p8
+    else:
+        r_bins = r_bins_standard
 
-    # Store posterior samples for this bin
-    getdist_samples_all = []
-
+    # Box size
+    box_size = 2800 if mode == 'FIDUCIAL_2p8' else 1000
 
     # ----------------------------------------------
-    # Read every feedback model
+    # Loop over radius bins
     # ----------------------------------------------
 
-    for i, mode in enumerate(modes):
+    for Rmin, Rmax in r_bins:
 
-        # Only FIDUCIAL_2p8 has the 30-50 bin
-        if (Rmin, Rmax) == (30, 50) and mode != 'FIDUCIAL_2p8':
-            continue
+        print(f"Processing Rv bin {Rmin}-{Rmax}")
 
-        # Box size for each feedback model
-        box_size = 2800 if mode == 'FIDUCIAL_2p8' else 1000
+        # Store posterior samples for this bin
+        getdist_samples_all = []
 
         filename = (
             '/disks/shear16/herle/models/models/'
