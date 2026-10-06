@@ -161,15 +161,35 @@ def read_nautilus_samples(npz_filename):
 names  = ['A1_v', 'b_v']
 labels = ['A1_v', 'b_v']
 
-void_bins = [(0, 10), (10, 20), (20, 30)]
+# void_bins = [(0, 10), (10, 20), (20, 30)]
+# Rv_median = {
+#     'FIDUCIAL': [8.23, 14.82, 23.65],
+# }
+
+
+# rv means:  8.23, 14.82, 23.65
+# rv medians: 8.46, 14.72, 23.17
+
+# bin_labels       = ['0_10', '10_20', '20_30']
+# delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+
+# void_bins = [(0, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
+# Rv_median = {
+#     'FIDUCIAL': [8.23, 12.49, 17.28, 22.12, 26.98, 32.56],
+# }
+
+# bin_labels       = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
+# delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
+
+void_bins = [(10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
 Rv_median = {
-    'FIDUCIAL': [8.46, 14.72, 23.17],
+    'FIDUCIAL': [12.49, 17.28, 22.12, 26.98, 32.56],
 }
 
-bin_labels       = ['0_10', '10_20', '20_30']
-delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+bin_labels       = ['10_15', '15_20', '20_25', '25_30', '30_50']
+delta_v_bin_labels = ['bin1', 'bin2', 'bin3', 'bin4', 'bin5']
 
-rmax_trunc = 500.0   # Mpc/h — match shell profile truncation
+rmax_trunc = 400.0   # Mpc/h — match shell profile truncation
 
 chi2_results = {mode: {'bin_label': [], 'chi2_red': []} for mode in modes}
 
@@ -227,7 +247,8 @@ for i in range(len(modes)):
         # --------------------------------------------------
         # Load xi_vm from measurement and Hankel transform it
         # --------------------------------------------------
-        run      = 'L1000N1800'
+        # run      = 'L1000N1800'
+        run      = 'L2800N5040'
         redshift = '0.0'
 
         df_corr = pd.read_hdf(
@@ -614,7 +635,7 @@ for i in range(len(modes)):
         plt.tight_layout()
         plt.savefig(
             f'/disks/shear16/herle/code/plots/'
-            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical_xivmhankel_morerp_rebinned.png'
+            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_2p8.png'
         )
 
         map_idx = np.argmax(logl)
@@ -652,9 +673,19 @@ for i in range(len(modes)):
 
         plt.savefig(
             f'/disks/shear16/herle/code/plots/'
-            f'check_contours_{modes[i]}_{bin_label}_seperate_env_dep_analytical_xivmhankel_morerp_rebinned.png'
+            f'check_contours_{modes[i]}_{bin_label}_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_2p8.png'
         )
         plt.close()
+
+chi2_save_path = '/disks/shear16/herle/code/temp_data/chi2red_results_env_dep_analytical_mean_Rv_mean_rmax400_xi_vm_2p8.npz'
+ 
+save_dict = {}
+for mode in modes:
+    save_dict[f'{mode}_bin_labels'] = np.array(chi2_results[mode]['bin_label'])
+    save_dict[f'{mode}_chi2_red']   = np.array(chi2_results[mode]['chi2_red'])
+ 
+np.savez(chi2_save_path, **save_dict)
+print(f"Saved chi2 results to {chi2_save_path}")
 
 fig, ax = plt.subplots(figsize=(8, 5))
 for mode in modes:
@@ -669,7 +700,7 @@ ax.set_ylabel(r'$\chi^2_{\rm red}$')
 ax.legend(frameon=False)
 plt.tight_layout()
 plt.savefig(
-    '/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical_xivmhankel_morerp_rebinned.png',
+    '/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical_xivmhankel_morerp_rebinned_2p8.png',
     dpi=300, bbox_inches='tight'
 )
 plt.close()

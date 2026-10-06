@@ -174,7 +174,7 @@ labels = ['A1_v', 'b_v']
 # # Define void radius bins
 void_bins = [(0, 10), (10, 20), (20, 30)]
 Rv_median = {
-    'FIDUCIAL':        [8.46, 14.72, 23.17],
+    'FIDUCIAL':        [8.23, 14.82, 23.65],
     # 'WEAK_AGN':        [8.49, 14.65, 23.10],
     # 'STRONG_AGN':      [8.41, 14.70, 22.94],
     # 'STRONGER_AGN':    [8.44, 14.58, 23.10],
@@ -182,6 +182,9 @@ Rv_median = {
     # 'STRONG_SUPERNOVA':[8.59, 14.83, 23.19],
     # 'FIDUCIAL_2p8':    [8.28, 14.37, 22.82]
 }
+
+# rv means:  8.23, 14.82, 23.65
+# rv medians: 8.46, 14.72, 23.17
 
 bin_labels = ['0_10', '10_20', '20_30']
 delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
@@ -229,7 +232,7 @@ for i in range(len(modes)):
 
         delta_v = np.load(
             f'/disks/shear16/herle/code/temp_data/'
-            f'zobov_{modes[i]}_void_delta_k_{delta_bin_label}_raw_particles.npy'
+            f'zobov_{modes[i]}_void_delta_k_{delta_bin_label}_raw_particles_rmax300_mean_hres.npy'
         )
         # Reconstruct the k-grid delta_v was actually saved on
         # (must match the void script exactly: log10kmin=-5, log10kmax=2, N=1000001, then *h)
@@ -478,7 +481,7 @@ for i in range(len(modes)):
             filename = (
                 f'/disks/shear16/herle/models/models/'
                 f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
-                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical.h5'
+                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical_mean.h5'
                 )
             sampler = Sampler(
                 prior_obj,
@@ -497,7 +500,7 @@ for i in range(len(modes)):
             output_file = (
                 f'/disks/shear16/herle/models/models/'
                 f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
-                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical.npz'
+                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical_mean.npz'
             )
             np.savez(output_file,
                     samples=points,
@@ -508,11 +511,11 @@ for i in range(len(modes)):
             print(f"Saved results to {output_file}")
 
 
-        # if __name__ == '__main__':
-        #     run()
+        if __name__ == '__main__':
+            run()
 
 
-        filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv{bin_label}Mpc_seperate_env_dep_analytical.npz'
+        filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv{bin_label}Mpc_seperate_env_dep_analytical_mean.npz'
         samples, weights, logl = read_nautilus_samples(filename)
         getdist = MCSamples(samples=samples, 
                                     weights=weights,
@@ -696,7 +699,7 @@ for i in range(len(modes)):
 
         plt.tight_layout()
         plt.savefig(f'/disks/shear16/herle/code/plots/'
-            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical.png'
+            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical_mean.png'
         )
 
         map_idx = np.argmax(logl)
@@ -739,9 +742,19 @@ for i in range(len(modes)):
 
 
         plt.savefig(f'/disks/shear16/herle/code/plots/'
-            f'check_contours_{modes[i]}_{bin_label}_seperate_env_dep_analytical.png'
+            f'check_contours_{modes[i]}_{bin_label}_seperate_env_dep_analytical_mean.png'
         )
         plt.close()
+
+chi2_save_path = '/disks/shear16/herle/code/temp_data/chi2red_results_env_dep_analytical_mean_Rv_mean_rmax300_hres.npz'
+ 
+save_dict = {}
+for mode in modes:
+    save_dict[f'{mode}_bin_labels'] = np.array(chi2_results[mode]['bin_label'])
+    save_dict[f'{mode}_chi2_red']   = np.array(chi2_results[mode]['chi2_red'])
+ 
+np.savez(chi2_save_path, **save_dict)
+print(f"Saved chi2 results to {chi2_save_path}")
 
 fig, ax = plt.subplots(figsize=(8, 5))
 for mode in modes:
@@ -755,5 +768,5 @@ ax.set_xlabel(r'$R_v$ bin')
 ax.set_ylabel(r'$\chi^2_{\rm red}$')
 ax.legend(frameon=False)
 plt.tight_layout()
-plt.savefig('/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical.png', dpi=300, bbox_inches='tight')
+plt.savefig('/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical_mean.png', dpi=300, bbox_inches='tight')
 plt.close()

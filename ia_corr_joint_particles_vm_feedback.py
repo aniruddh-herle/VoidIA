@@ -8,8 +8,8 @@ import gc; gc.collect()
 
 # --- User parameters ---
 path = '/disks/shear16/herle/shape_catalogues/catalogs/mass_cut_12/'
-#run = 'L2800N5040'  # change this to 'L1000N1800' for the smaller box
-run = 'L1000N1800'  
+run = 'L2800N5040'  # change this to 'L1000N1800' for the smaller box
+#run = 'L1000N1800'  
 redshift = '0.0'
 
 # --- Determine box size automatically ---
@@ -24,23 +24,53 @@ else:
 h=0.681
 # modes = ['FIDUCIAL', 'WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA', 'JETS_published', 'STRONG_JETS_published']
 
-modes = ['WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
-#modes = ['FIDUCIAL']
+#modes = ['WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
+modes = ['FIDUCIAL']
+
+r_bins = [
+   (0, 10)
+    # (10, 15),
+    # (15, 20),
+    # (20, 25),
+    # (25, 30),
+    # (30, 50)
+]
 
 # r_bins = [
 #     (0, 10),
-#     (10, 15),
-#     (15, 20),
-#     (20, 25),
-#     (25, 30),
-#     (30, 50)
+#     (10, 20),
+#     (20, 30)
 # ]
 
-r_bins = [
-    (0, 10),
-    (10, 20),
-    (20, 30)
-]
+print('particle data')
+
+# particle_data = (
+#     "/disks/shear16/herle/particle_data/L1000N1800_HYDRO_FIDUCIAL_77.npy"
+# )
+
+particle_data = (
+    "/disks/shear16/herle/particle_data/L2800N5040_HYDRO_FIDUCIAL_78.npy"
+)
+
+pos_dm = np.load(particle_data)
+pos_dm = pos_dm.astype(np.float32)  # 30GB → 15GB
+pos_dm *= np.float32(h)
+
+matter_positions = pd.DataFrame(
+    pos_dm,
+    columns=['halo_centre_x', 'halo_centre_y', 'halo_centre_z']
+)
+del pos_dm
+gc.collect()
+
+matter_positions['weight'] = np.float32(1.0)
+matter_positions['e1'] = np.float32(1.0)
+matter_positions['e2'] = np.float32(1.0)
+
+print("x range: ", matter_positions['halo_centre_x'].min(), matter_positions['halo_centre_x'].max())
+print("y range: ", matter_positions['halo_centre_y'].min(), matter_positions['halo_centre_y'].max())
+print("z range: ", matter_positions['halo_centre_z'].min(), matter_positions['halo_centre_z'].max())
+
 
 for Rmin, Rmax in r_bins:
     print("Rmin, Rmax = ", (Rmin, Rmax))
@@ -71,8 +101,8 @@ for Rmin, Rmax in r_bins:
         print(len(data_shapes), "galaxies with N_stellar > 300")
         data_shapes['weight'] = np.ones(len(data_shapes['halo_centre_x']))
 
-        voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_output' + mode + '_cat.txt')
-        #voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt')
+        #voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_output' + mode + '_cat.txt')
+        voids = np.loadtxt('/disks/shear16/herle/voids/zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt')
         #h = 0.681
         #voids[:, 1:4] /= h
         print("Void x range: ", voids[:, 1].min(), voids[:, 1].max())
@@ -132,40 +162,12 @@ for Rmin, Rmax in r_bins:
         del random_mock_box_shapes
         gc.collect()
 
-        print('particle data')
-
-        particle_data = (
-            "/disks/shear16/herle/particle_data/L1000N1800_HYDRO_FIDUCIAL_77.npy"
-        )
-
-        # particle_data = (
-        #     "/disks/shear16/herle/particle_data/L2800N5040_HYDRO_FIDUCIAL_78.npy"
-        # )
-
-        pos_dm = np.load(particle_data)
-        pos_dm = pos_dm.astype(np.float32)  # 30GB → 15GB
-        pos_dm *= np.float32(h)
-
-        matter_positions = pd.DataFrame(
-            pos_dm,
-            columns=['halo_centre_x', 'halo_centre_y', 'halo_centre_z']
-        )
-        del pos_dm
-        gc.collect()
-
-        matter_positions['weight'] = np.float32(1.0)
-        matter_positions['e1'] = np.float32(1.0)
-        matter_positions['e2'] = np.float32(1.0)
-
-        print("x range: ", matter_positions['halo_centre_x'].min(), matter_positions['halo_centre_x'].max())
-        print("y range: ", matter_positions['halo_centre_y'].min(), matter_positions['halo_centre_y'].max())
-        print("z range: ", matter_positions['halo_centre_z'].min(), matter_positions['halo_centre_z'].max())
-
+        
         # --- Prepare for correlations ---
         # col_names_box = ['particle_position_x','particle_position_y','particle_position_z', 'e1', 'e2']
         # col_names_box += ['weight']
-        # random_mock_box_matter_positions = make_randoms_box(matter_positions['halo_centre_x'], matter_positions['halo_centre_y'], matter_positions['halo_centre_z'], 500000, col_names=col_names_box)
-        random_mock_box_matter_positions = make_randoms_box(matter_positions['halo_centre_x'], matter_positions['halo_centre_y'], matter_positions['halo_centre_z'], len(matter_positions)*2, col_names=col_names_box)
+        random_mock_box_matter_positions = make_randoms_box(matter_positions['halo_centre_x'], matter_positions['halo_centre_y'], matter_positions['halo_centre_z'], 500000, col_names=col_names_box)
+        #random_mock_box_matter_positions = make_randoms_box(matter_positions['halo_centre_x'], matter_positions['halo_centre_y'], matter_positions['halo_centre_z'], len(matter_positions)*2, col_names=col_names_box)
 
         # --- Compute correlations ---
         corr_void_particles = compute_2p_corr(
@@ -205,14 +207,23 @@ for Rmin, Rmax in r_bins:
                 ]
         )
 
-        df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp_lessrands.h5',
+        df.to_hdf(f'/disks/shear16/herle/correlations1/correlations_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp.h5',
                 key='a')
 
-        np.save(f'/disks/shear16/herle/correlations1/wvp_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp_lessrands.npy', corr_voids.wgp.cov_jk)
-        np.save(f'/disks/shear16/herle/correlations1/wvp_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp_lessrands.npy', corr_voids.wgp.xip_jk)
+        np.save(f'/disks/shear16/herle/correlations1/wvp_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp.npy', corr_voids.wgp.cov_jk)
+        np.save(f'/disks/shear16/herle/correlations1/wvp_xip_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp.npy', corr_voids.wgp.xip_jk)
 
-        np.save(f'/disks/shear16/herle/correlations1/xi_vv_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp_lessrands.npy', corr_voids.xi_vv.cov_jk)
-        np.save(f'/disks/shear16/herle/correlations1/xi_vv_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp_lessrands.npy', corr_voids.xi_vv.xi_jk)
+        np.save(f'/disks/shear16/herle/correlations1/xi_vv_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp.npy', corr_voids.xi_vv.cov_jk)
+        np.save(f'/disks/shear16/herle/correlations1/xi_vv_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp.npy', corr_voids.xi_vv.xi_jk)
 
-        np.save(f'/disks/shear16/herle/correlations1/xi_vm_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp_lessrands.npy', corr_void_particles.xi_vm.cov_jk)
-        np.save(f'/disks/shear16/herle/correlations1/xi_vm_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp_lessrands.npy', corr_void_particles.xi_vm.xi_jk)
+        np.save(f'/disks/shear16/herle/correlations1/xi_vm_cov_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp.npy', corr_void_particles.xi_vm.cov_jk)
+        np.save(f'/disks/shear16/herle/correlations1/xi_vm_jk_voids_joint_revolver_{Rmin}_{Rmax}hMpc_'+run+'_HYDRO_'+mode+'_'+redshift+'_env_dep_analytical_morerp.npy', corr_void_particles.xi_vm.xi_jk)
+
+        # --- Cleanup before next iteration ---
+        del random_mock_box_matter_positions
+        del random_mock_box_void_positions
+        del corr_voids
+        del corr_void_particles
+        del void_positions
+        del data_shapes
+        gc.collect()

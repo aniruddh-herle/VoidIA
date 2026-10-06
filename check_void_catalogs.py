@@ -10,7 +10,7 @@ base_path = '/disks/shear16/herle/voids/'
 
 files = [
     'zobov-Flamingo_outputFIDUCIAL_cat.txt',
-    'zobov-Flamingo_outputFIDUCIAL_2gigabox_cat.txt'
+    'zobov-Flamingo_output_fulltracerFIDUCIAL_2gigabox_cat.txt'
 ]
 
 FLAMINGO_colors = ['#117733', '#332288']
