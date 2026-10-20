@@ -4,6 +4,8 @@ import os
 
 from getdist import plots, MCSamples
 
+from mnras import *
+
 
 # =====================================================
 # Settings
@@ -14,7 +16,6 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 
-plt.rcdefaults()
 plt.rcParams['figure.figsize'] = (10, 10)
 plt.rcParams['font.size'] = 22
 
@@ -262,7 +263,7 @@ for i, mode in enumerate(modes):
         r_bins = r_bins_standard
 
     # Box size
-    box_size = 2800 if mode == 'FIDUCIAL_2p8' else 1000
+    box_size = 2800.0 if mode == 'FIDUCIAL_2p8' else 1000
 
     # ----------------------------------------------
     # Loop over radius bins
@@ -275,11 +276,23 @@ for i, mode in enumerate(modes):
         # Store posterior samples for this bin
         getdist_samples_all = []
 
-        filename = (
-            '/disks/shear16/herle/models/models/'
-            f'nautilus_chain_revolver_{mode}_voids_{box_size}'
-            f'_Rv{bin_labels[(Rmin,Rmax)]}Mpc_seperate_env_dep_analytical.npz'
-        )
+        if mode == 'FIDUCIAL_2p8':
+
+            filename = (
+                '/disks/shear16/herle/models/models/'
+                f'nautilus_chain_revolver_FIDUCIAL_voids_{box_size}'
+                f'_Rv{bin_labels[(Rmin,Rmax)]}Mpc_seperate_env_dep_analytical'
+                f'_xivmhankel_morerp_rebinned_wl1501_fullt.npz'
+            )
+        
+        else:
+
+            filename = (
+                '/disks/shear16/herle/models/models/'
+                f'nautilus_chain_revolver_{mode}_voids_{box_size}'
+                f'_Rv{bin_labels[(Rmin,Rmax)]}Mpc_seperate_env_dep_analytical'
+                f'_xivmhankel_morerp_rebinned_wl1501_fullt.npz'
+            )
 
         print(filename)
 
@@ -520,6 +533,9 @@ axes[0].legend(
     loc='upper right'
 )
 
+correct_tick_marks(axes[0])
+correct_tick_marks(axes[1])
+
 # axes[1].legend(
 #     fontsize=16,
 #     frameon=False,
@@ -538,6 +554,15 @@ plt.savefig(
     'void_parameters_vs_Rv.png',
 
     dpi=300,
+
+    bbox_inches='tight'
+
+)
+
+plt.savefig(
+
+    '/disks/shear16/herle/code/plots/'
+    'void_parameters_vs_Rv.pdf',
 
     bbox_inches='tight'
 

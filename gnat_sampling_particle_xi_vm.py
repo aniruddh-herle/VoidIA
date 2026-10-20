@@ -131,7 +131,9 @@ w_2v = w_arr[:, 0, 0]
 
 h = 0.681
 
+# modes = ['WEAK_AGN', 'STRONG_AGN', 'STRONGER_AGN', 'STRONGEST_AGN', 'STRONG_SUPERNOVA']
 modes = ['FIDUCIAL']
+
 
 k_native = np.logspace(-5, 2, 1000001)   # h/Mpc
 
@@ -161,33 +163,27 @@ def read_nautilus_samples(npz_filename):
 names  = ['A1_v', 'b_v']
 labels = ['A1_v', 'b_v']
 
-# void_bins = [(0, 10), (10, 20), (20, 30)]
-# Rv_median = {
-#     'FIDUCIAL': [8.23, 14.82, 23.65],
-# }
-
-
-# rv means:  8.23, 14.82, 23.65
-# rv medians: 8.46, 14.72, 23.17
 
 # bin_labels       = ['0_10', '10_20', '20_30']
 # delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
 
-# void_bins = [(0, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
+# void_bins = [(0, 10), (10, 20), (20, 30)]
 # Rv_median = {
-#     'FIDUCIAL': [8.23, 12.49, 17.28, 22.12, 26.98, 32.56],
+#     'FIDUCIAL': [8.23, 14.82, 23.65],
+#     'WEAK_AGN': [8.27, 14.74, 23.59],
+#     'STRONG_AGN': [8.18, 14.78, 23.47],
+#     'STRONGER_AGN': [8.25, 14.70, 23.59],
+#     'STRONGEST_AGN': [8.15, 14.73, 23.48],
+#     'STRONG_SUPERNOVA': [8.36, 14.88, 23.71]
 # }
 
-# bin_labels       = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
-# delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
+bin_labels       = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
+delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
 
-void_bins = [(10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
+void_bins = [(0,10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
 Rv_median = {
-    'FIDUCIAL': [12.49, 17.28, 22.12, 26.98, 32.56],
+    'FIDUCIAL': [8.23, 12.49, 17.28, 22.12, 26.98, 32.56],
 }
-
-bin_labels       = ['10_15', '15_20', '20_25', '25_30', '30_50']
-delta_v_bin_labels = ['bin1', 'bin2', 'bin3', 'bin4', 'bin5']
 
 rmax_trunc = 400.0   # Mpc/h — match shell profile truncation
 
@@ -247,14 +243,14 @@ for i in range(len(modes)):
         # --------------------------------------------------
         # Load xi_vm from measurement and Hankel transform it
         # --------------------------------------------------
-        # run      = 'L1000N1800'
+        #run      = 'L1000N1800'
         run      = 'L2800N5040'
         redshift = '0.0'
 
         df_corr = pd.read_hdf(
             f'/disks/shear16/herle/correlations1/'
             f'correlations_joint_revolver_{bin_label}hMpc_{run}'
-            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp.h5',
+            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp_fullt.h5',
             key='a'
         )
 
@@ -286,29 +282,32 @@ for i in range(len(modes)):
         )
         delta_v_on_target = interp_to_target(logk_target)
 
+        #### SMOOTHING ######
+
         # Smooth on k_array_single's log grid
-        logk = logk_target
+        # logk = logk_target
 
-        N_log        = 20000
-        logk_uniform = np.linspace(logk.min(), logk.max(), N_log)
+        # N_log        = 20000
+        # logk_uniform = np.linspace(logk.min(), logk.max(), N_log)
 
-        interp_func    = interp1d(logk, delta_v_on_target, kind="linear")
-        delta_uniform  = interp_func(logk_uniform)
+        # interp_func    = interp1d(logk, delta_v_on_target, kind="linear")
+        # delta_uniform  = interp_func(logk_uniform)
 
-        window_length = 3001
-        polyorder     = 3
-        if window_length % 2 == 0:
-            window_length += 1
+        # # window_length = 3001
+        # window_length = 1501
+        # polyorder     = 3
+        # if window_length % 2 == 0:
+        #     window_length += 1
 
-        delta_uniform_smooth = savgol_filter(delta_uniform, window_length, polyorder)
+        # delta_uniform_smooth = savgol_filter(delta_uniform, window_length, polyorder)
 
-        interp_back      = interp1d(logk_uniform, delta_uniform_smooth, kind="linear")
-        delta_v_smoothed = interp_back(logk)
+        # interp_back      = interp1d(logk_uniform, delta_uniform_smooth, kind="linear")
+        # delta_v_smoothed = interp_back(logk)
 
         # Pack into pk_input
         pk_input_1v = np.zeros((len(k_array_single), 1, len(redshift_list)))
         for idx_z, z in enumerate(redshift_list):
-            pk_input_1v[:, 0, idx_z] = -np.pi**2 * delta_v_smoothed
+            pk_input_1v[:, 0, idx_z] = -np.pi**2 * delta_v_on_target
 
         # --------------------------------------------------
         # Everything below is unchanged from original
@@ -351,13 +350,13 @@ for i in range(len(modes)):
         meas_file = (
             f'/disks/shear16/herle/correlations1/'
             f'correlations_joint_revolver_{bin_label}hMpc_{run}'
-            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp.h5'
+            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp_fullt.h5'
         )
 
         wvp_JK_measured = np.load(
             f'/disks/shear16/herle/correlations1/'
             f'wvp_xip_jk_voids_joint_revolver_{bin_label}hMpc_{run}'
-            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp.npy'
+            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp_fullt.npy'
         )
 
         # reuse df_corr since it is the same file
@@ -463,7 +462,7 @@ for i in range(len(modes)):
             filename = (
                 f'/disks/shear16/herle/models/models/'
                 f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
-                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical_xivmhankel_morerp_rebinned.h5'
+                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_unsmoothed_fullt.h5'
             )
             sampler = Sampler(
                 prior_obj,
@@ -481,7 +480,7 @@ for i in range(len(modes)):
             output_file = (
                 f'/disks/shear16/herle/models/models/'
                 f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
-                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical_xivmhankel_morerp_rebinned.npz'
+                f'_Rv{bin_label}Mpc_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_unsmoothed_fullt.npz'
             )
             np.savez(output_file,
                      samples=points,
@@ -496,7 +495,7 @@ for i in range(len(modes)):
         filename = (
             f'/disks/shear16/herle/models/models/'
             f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
-            f'_Rv{bin_label}Mpc_seperate_env_dep_analytical_xivmhankel_morerp_rebinned.npz'
+            f'_Rv{bin_label}Mpc_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_unsmoothed_fullt.npz'
         )
         samples, weights, logl = read_nautilus_samples(filename)
         getdist = MCSamples(samples=samples,
@@ -635,7 +634,7 @@ for i in range(len(modes)):
         plt.tight_layout()
         plt.savefig(
             f'/disks/shear16/herle/code/plots/'
-            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_2p8.png'
+            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_unsmoothed_fullt.png'
         )
 
         map_idx = np.argmax(logl)
@@ -673,11 +672,11 @@ for i in range(len(modes)):
 
         plt.savefig(
             f'/disks/shear16/herle/code/plots/'
-            f'check_contours_{modes[i]}_{bin_label}_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_2p8.png'
+            f'check_contours_{modes[i]}_{bin_label}_seperate_env_dep_analytical_xivmhankel_morerp_rebinned_unsmoothed_fullt.png'
         )
         plt.close()
 
-chi2_save_path = '/disks/shear16/herle/code/temp_data/chi2red_results_env_dep_analytical_mean_Rv_mean_rmax400_xi_vm_2p8.npz'
+chi2_save_path = '/disks/shear16/herle/code/temp_data/chi2red_results_env_dep_analytical_mean_Rv_mean_rmax400_xi_vm_unsmoothed_fullt.npz'
  
 save_dict = {}
 for mode in modes:
@@ -700,7 +699,7 @@ ax.set_ylabel(r'$\chi^2_{\rm red}$')
 ax.legend(frameon=False)
 plt.tight_layout()
 plt.savefig(
-    '/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical_xivmhankel_morerp_rebinned_2p8.png',
+    '/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical_xivmhankel_morerp_rebinned_unsmoothed_fullt.png',
     dpi=300, bbox_inches='tight'
 )
 plt.close()

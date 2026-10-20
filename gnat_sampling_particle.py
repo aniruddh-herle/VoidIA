@@ -172,22 +172,22 @@ names = ['A1_v', 'b_v']
 labels = ['A1_v', 'b_v']
 
 # # Define void radius bins
-void_bins = [(0, 10), (10, 20), (20, 30)]
-Rv_median = {
-    'FIDUCIAL':        [8.23, 14.82, 23.65],
-    # 'WEAK_AGN':        [8.49, 14.65, 23.10],
-    # 'STRONG_AGN':      [8.41, 14.70, 22.94],
-    # 'STRONGER_AGN':    [8.44, 14.58, 23.10],
-    # 'STRONGEST_AGN':   [8.37, 14.62, 22.94],
-    # 'STRONG_SUPERNOVA':[8.59, 14.83, 23.19],
-    # 'FIDUCIAL_2p8':    [8.28, 14.37, 22.82]
-}
+# void_bins = [(0, 10), (10, 20), (20, 30)]
+# Rv_median = {
+#     'FIDUCIAL':        [8.23, 14.82, 23.65],
+#     # 'WEAK_AGN':        [8.49, 14.65, 23.10],
+#     # 'STRONG_AGN':      [8.41, 14.70, 22.94],
+#     # 'STRONGER_AGN':    [8.44, 14.58, 23.10],
+#     # 'STRONGEST_AGN':   [8.37, 14.62, 22.94],
+#     # 'STRONG_SUPERNOVA':[8.59, 14.83, 23.19],
+#     # 'FIDUCIAL_2p8':    [8.28, 14.37, 22.82]
+# }
 
-# rv means:  8.23, 14.82, 23.65
-# rv medians: 8.46, 14.72, 23.17
+# # rv means:  8.23, 14.82, 23.65
+# # rv medians: 8.46, 14.72, 23.17
 
-bin_labels = ['0_10', '10_20', '20_30']
-delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+# bin_labels = ['0_10', '10_20', '20_30']
+# delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
 
 # Define void radius bins
 # void_bins = [(0, 10), (10, 20), (20, 30), (30, 50)]
@@ -195,16 +195,14 @@ delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
 #     'FIDUCIAL_2p8':    [8.28, 14.37, 22.82, 31.92]
 # }
 
-# bin_labels = ['0_10', '10_20', '20_30', '30_50']
-# delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3']
+void_bins = [(0, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
+Rv_median = {
+    'FIDUCIAL':    [8.23, 12.49, 17.17, 21.94, 26.76, 31.92]
+}
 
-# void_bins = [(0, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
-# Rv_median = {
-#     'FIDUCIAL_2p8':    [8.28, 12.49, 17.17, 21.94, 26.76, 31.92]
-# }
+bin_labels = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
+delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
 
-# bin_labels = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
-# delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
 
 
 chi2_results = {mode: {'bin_label': [], 'chi2_red': []} for mode in modes}
@@ -232,7 +230,7 @@ for i in range(len(modes)):
 
         delta_v = np.load(
             f'/disks/shear16/herle/code/temp_data/'
-            f'zobov_{modes[i]}_void_delta_k_{delta_bin_label}_raw_particles_rmax300_mean_hres.npy'
+            f'zobov_{modes[i]}_2p8_void_delta_k_{delta_bin_label}_raw_particles_rmax400_mean.npy'
         )
         # Reconstruct the k-grid delta_v was actually saved on
         # (must match the void script exactly: log10kmin=-5, log10kmax=2, N=1000001, then *h)
@@ -312,8 +310,8 @@ for i in range(len(modes)):
         model_mask_VII = (model_rp >= lower_rp_VII) & (model_rp <= upper_rp_VII)
 
 
-        run = 'L1000N1800'
-        #run = 'L2800N5040'
+        #run = 'L1000N1800'
+        run = 'L2800N5040'
         redshift = '0.0'
 
         # -------------------------------------------------
@@ -460,8 +458,6 @@ for i in range(len(modes)):
         prior_obj.add_parameter('A1_v', dist=(-10.0, 10.0))
         prior_obj.add_parameter('b_v', dist=(-10.0, 10.0))
 
-
-
         def loglikelihood_fn(p_dict):
             # p_dict keys follow prior_obj keys order
             p = np.array([p_dict[key] for key in param_names])
@@ -511,8 +507,8 @@ for i in range(len(modes)):
             print(f"Saved results to {output_file}")
 
 
-        if __name__ == '__main__':
-            run()
+        # if __name__ == '__main__':
+        #     run()
 
 
         filename = f'/disks/shear16/herle/models/models/nautilus_chain_revolver_{modes[i]}_voids_{box_size}_Rv{bin_label}Mpc_seperate_env_dep_analytical_mean.npz'
@@ -699,7 +695,7 @@ for i in range(len(modes)):
 
         plt.tight_layout()
         plt.savefig(f'/disks/shear16/herle/code/plots/'
-            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical_mean.png'
+            f'check_fits_{modes[i]}_{bin_label}_seperate_env_dep_analytical_mean_2p8.png'
         )
 
         map_idx = np.argmax(logl)
@@ -746,7 +742,7 @@ for i in range(len(modes)):
         )
         plt.close()
 
-chi2_save_path = '/disks/shear16/herle/code/temp_data/chi2red_results_env_dep_analytical_mean_Rv_mean_rmax300_hres.npz'
+chi2_save_path = '/disks/shear16/herle/code/temp_data/chi2red_results_env_dep_analytical_mean_Rv_mean_rmax400_2p8.npz'
  
 save_dict = {}
 for mode in modes:
@@ -768,5 +764,5 @@ ax.set_xlabel(r'$R_v$ bin')
 ax.set_ylabel(r'$\chi^2_{\rm red}$')
 ax.legend(frameon=False)
 plt.tight_layout()
-plt.savefig('/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical_mean.png', dpi=300, bbox_inches='tight')
+plt.savefig('/disks/shear16/herle/code/plots/chi2red_vs_Rvbin_env_dep_analytical_mean_2p8.png', dpi=300, bbox_inches='tight')
 plt.close()

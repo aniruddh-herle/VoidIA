@@ -153,7 +153,7 @@ scaling = (
     / ccl.growth_factor(cosmo_ccl, scale_factor)
 )
 
-rmax_trunc = 500.0   # Mpc/h truncation for xi_vm Hankel transform
+rmax_trunc = 400.0   # Mpc/h truncation for xi_vm Hankel transform
 
 # coarser rp grid for the wvp fit
 fit_rp_edges = np.logspace(np.log10(6.0), np.log10(500.0), 12)
@@ -162,10 +162,19 @@ fit_rp_edges = np.logspace(np.log10(6.0), np.log10(500.0), 12)
 # VOID RADIUS BINS
 # ============================================================
 
-void_bins = [(0, 10), (10, 20), (20, 30)]
-Rv_median = {'FIDUCIAL': [8.46, 14.72, 23.17]}
-bin_labels = ['0_10', '10_20', '20_30']
-delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+# void_bins = [(0, 10), (10, 20), (20, 30)]
+# Rv_median = {'FIDUCIAL': [8.46, 14.72, 23.17]}
+# bin_labels = ['0_10', '10_20', '20_30']
+# delta_v_bin_labels = ['bin0', 'bin1', 'bin2']
+
+void_bins = [(0, 10), (10, 15), (15, 20), (20, 25), (25, 30), (30, 50)]
+Rv_median = {
+    'FIDUCIAL':    [8.23, 12.49, 17.17, 21.94, 26.76, 31.92]
+}
+
+bin_labels = ['0_10', '10_15', '15_20', '20_25', '25_30', '30_50']
+delta_v_bin_labels = ['bin0', 'bin1', 'bin2', 'bin3', 'bin4', 'bin5']
+
 
 # ============================================================
 # PRECOMPUTE xi_mm ONCE
@@ -187,6 +196,14 @@ xi_mm  = xi_mm[keep]
 xi_mm_interp = interp1d(
     r_mm, xi_mm, kind='cubic', bounds_error=False, fill_value=0.0
 )
+
+# Right after building xi_mm_interp, add:
+print(f"\n--- xi_mm diagnostics ---")
+print(f"r_mm range: {r_mm.min():.2f} to {r_mm.max():.2f} Mpc/h")
+print(f"xi_mm at r=50:  {xi_mm_interp(50.0):.6e}")
+print(f"xi_mm at r=100: {xi_mm_interp(100.0):.6e}")
+print(f"xi_mm at r=200: {xi_mm_interp(200.0):.6e}")
+print(f"xi_mm min/max: {xi_mm.min():.6e} / {xi_mm.max():.6e}")
 
 # ============================================================
 # GETDIST / HELPER FUNCTIONS
@@ -239,13 +256,13 @@ for i in range(len(modes)):
         # 1-VOID TERM: xi_vm -> Hankel -> delta_v
         # ====================================================
 
-        run      = 'L1000N1800'
+        run      = 'L2800N5040'
         redshift = '0.0'
 
         df_corr = pd.read_hdf(
             f'/disks/shear16/herle/correlations1/'
             f'correlations_joint_revolver_{bin_label}hMpc_{run}'
-            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp.h5',
+            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp_fullt.h5',
             key='a'
         )
 
@@ -277,7 +294,7 @@ for i in range(len(modes)):
 
         delta_uniform = interp1d(logk, delta_v_on_target, kind="linear")(logk_uniform)
 
-        window_length = 3001
+        window_length = 1501
         polyorder     = 3
         delta_uniform_smooth = savgol_filter(delta_uniform, window_length, polyorder)
 
@@ -317,7 +334,7 @@ for i in range(len(modes)):
         wvp_JK = np.load(
             f'/disks/shear16/herle/correlations1/'
             f'wvp_xip_jk_voids_joint_revolver_{bin_label}hMpc_{run}'
-            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp.npy'
+            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp_fullt.npy'
         )
 
         rp_meas  = df_corr['wvp_rp'].values
@@ -354,19 +371,24 @@ for i in range(len(modes)):
         xi_vm_JK = np.load(
             f'/disks/shear16/herle/correlations1/'
             f'xi_vm_jk_voids_joint_revolver_{bin_label}hMpc_{run}'
-            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp.npy'
+            f'_HYDRO_{modes[i]}_{redshift}_env_dep_analytical_morerp_fullt.npy'
         )
 
         rp_xi_vm    = df_corr['xi_vm_r'].values
         xi_vm_meas  = df_corr['xi_vm'].values
 
-        xi_rmin = 50.0
-        xi_rmax = 200.0
+        xi_rmin = max(3.0 * Rv, 150.0)   # well beyond compensation wall
+        xi_rmax = 300.0
         mask_xi = (rp_xi_vm >= xi_rmin) & (rp_xi_vm <= xi_rmax)
 
         rp_xi_cut    = rp_xi_vm[mask_xi]
         xi_vm_cut    = xi_vm_meas[mask_xi]
         xi_vm_JK_cut = xi_vm_JK[:, mask_xi]
+
+        print(f"\n--- xi_vm data diagnostics ---")
+        print(f"rp_xi_cut range: {rp_xi_cut.min():.2f} to {rp_xi_cut.max():.2f} Mpc/h")
+        print(f"xi_vm_cut: {xi_vm_cut}")
+        print(f"xi_vm_cut min/max: {xi_vm_cut.min():.6e} / {xi_vm_cut.max():.6e}")
 
         diff_xi    = xi_vm_JK_cut - xi_vm_JK_cut.mean(axis=0)
         cov_xi_arr = ((NPatches - 1) / NPatches) * (diff_xi.T @ diff_xi)
@@ -437,6 +459,8 @@ for i in range(len(modes)):
             b_v = p[2]
             return rp_xi_cut, b_v * xi_mm_interp(rp_xi_cut)
 
+
+
         # ====================================================
         # JOINT LOG-LIKELIHOOD
         # ====================================================
@@ -471,7 +495,7 @@ for i in range(len(modes)):
 
         prior_obj.add_parameter('A1_v', dist=(-10.0, 10.0))
         prior_obj.add_parameter('A2_v', dist=(-50.0, 50.0))
-        prior_obj.add_parameter('b_v',  dist=(-10.0,  0.0))
+        prior_obj.add_parameter('b_v',  dist=(-10.0,  10.0))
 
         def loglikelihood_fn(p_dict):
             p = np.array([p_dict[key] for key in param_names])
@@ -489,7 +513,7 @@ for i in range(len(modes)):
             filename = (
                 f'/disks/shear16/herle/models/models/'
                 f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
-                f'_Rv{bin_label}Mpc_env_dep_analytical_xivmhankel_morerp.h5'
+                f'_Rv{bin_label}Mpc_env_dep_analytical_xivmhankel_morerp_fullt_wl1501.h5'
             )
             sampler = Sampler(
                 prior_obj, loglikelihood_fn,
@@ -505,7 +529,7 @@ for i in range(len(modes)):
             output_file = (
                 f'/disks/shear16/herle/models/models/'
                 f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
-                f'_Rv{bin_label}Mpc_env_dep_analytical_xivmhankel_morerp.npz'
+                f'_Rv{bin_label}Mpc_env_dep_analytical_xivmhankel_morerp_fullt_wl1501.npz'
             )
             np.savez(output_file,
                      samples=points, logl=log_l,
@@ -522,7 +546,7 @@ for i in range(len(modes)):
         filename = (
             f'/disks/shear16/herle/models/models/'
             f'nautilus_chain_revolver_{modes[i]}_voids_{box_size}'
-            f'_Rv{bin_label}Mpc_env_dep_analytical_xivmhankel_morerp.npz'
+            f'_Rv{bin_label}Mpc_env_dep_analytical_xivmhankel_morerp_fullt_wl1501.npz'
         )
         samples, weights, logl = read_nautilus_samples(filename)
 
@@ -578,6 +602,13 @@ for i in range(len(modes)):
             for A1, A2, bv in zip(A1_draws, A2_draws, bv_draws)
         ])
         p16_xi, p50_xi, p84_xi = np.percentile(xi_vm_ens, [16, 50, 84], axis=0)
+
+        print(f"\n--- xi_vm model diagnostics ---")
+        print(f"b_v MAP value: {bv_best:.6f}")
+        print(f"xi_mm at rp_xi_cut: {xi_mm_interp(rp_xi_cut)}")
+        print(f"xi_vm_bestfit: {xi_vm_bestfit}")
+        print(f"xi_vm_bestfit min/max: {xi_vm_bestfit.min():.6e} / {xi_vm_bestfit.max():.6e}")
+        print(f"ratio xi_vm_cut / xi_mm: {xi_vm_cut / xi_mm_interp(rp_xi_cut)}")
 
         # ====================================================
         # RESIDUALS
@@ -679,7 +710,7 @@ for i in range(len(modes)):
 
         plt.savefig(
             f'/disks/shear16/herle/code/plots/'
-            f'check_fits_env_dep_analytical_{bin_label}_xivmhankel_morerp.png',
+            f'check_fits_env_dep_analytical_{bin_label}_xivmhankel_morerp_fullt_wl1501.png',
             bbox_inches='tight'
         )
         plt.close()
@@ -699,7 +730,7 @@ for i in range(len(modes)):
         )
         plt.savefig(
             f'/disks/shear16/herle/code/plots/'
-            f'check_contours_env_dep_analytical_{bin_label}_xivmhankel_morerp.png',
+            f'check_contours_env_dep_analytical_{bin_label}_xivmhankel_morerp_fullt_wl1501.png',
             bbox_inches='tight'
         )
         plt.close()
